@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dslab.monitoring.MonitoringServerProtocolTest" tests="2" skipped="0" failures="0" errors="0" timestamp="2022-12-04T17:52:00" hostname="Jonathans-MacBook-Air.local" time="22.055">
+  <properties/>
+  <testcase name="servers_returnsCorrectStatistics" classname="dslab.monitoring.MonitoringServerProtocolTest" time="11.029"/>
+  <testcase name="addresses_returnsCorrectStatistics" classname="dslab.monitoring.MonitoringServerProtocolTest" time="11.024"/>
+  <system-out><![CDATA[Exiting the shell, bye!
+Exiting the shell, bye!
+]]></system-out>
+  <system-err><![CDATA[Dec 04, 2022 6:52:03 PM dslab.monitoring.MonitoringServerProtocolTest servers_returnsCorrectStatistics
+INFO: Sending three monitoring packets to monitoring socket
+Dec 04, 2022 6:52:03 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:42 foo@example.com
+Dec 04, 2022 6:52:03 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:43 foo@example.com
+Dec 04, 2022 6:52:03 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:42 bar@example.com
+Dec 04, 2022 6:52:06 PM dslab.monitoring.UsageStaticsticsStorage servers
+INFO: servers()
+Dec 04, 2022 6:52:08 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: SocketException while waiting for/handling packets: Socket closed
+Dec 04, 2022 6:52:14 PM dslab.monitoring.MonitoringServerProtocolTest addresses_returnsCorrectStatistics
+INFO: Sending three monitoring packets to monitoring socket
+Dec 04, 2022 6:52:14 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:42 foo@example.com
+Dec 04, 2022 6:52:14 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:43 foo@example.com
+Dec 04, 2022 6:52:14 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: Received request-packet from client: 127.0.0.1:42 bar@example.com
+Dec 04, 2022 6:52:17 PM dslab.monitoring.UsageStaticsticsStorage addresses
+INFO: addresses()
+Dec 04, 2022 6:52:19 PM dslab.monitoring.udp.UdpListenerThread run
+INFO: SocketException while waiting for/handling packets: Socket closed
+]]></system-err>
+</testsuite>

@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+<meta http-equiv="x-ua-compatible" content="IE=edge"/>
+<title>Test results - Class dslab.client.MessageClientMailboxTest</title>
+<link href="../css/base-style.css" rel="stylesheet" type="text/css"/>
+<link href="../css/style.css" rel="stylesheet" type="text/css"/>
+<script src="../js/report.js" type="text/javascript"></script>
+</head>
+<body>
+<div id="content">
+<h1>Class dslab.client.MessageClientMailboxTest</h1>
+<div class="breadcrumbs">
+<a href="../index.html">all</a> &gt; 
+<a href="../packages/dslab.client.html">dslab.client</a> &gt; MessageClientMailboxTest</div>
+<div id="summary">
+<table>
+<tr>
+<td>
+<div class="summaryGroup">
+<table>
+<tr>
+<td>
+<div class="infoBox" id="tests">
+<div class="counter">2</div>
+<p>tests</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="failures">
+<div class="counter">2</div>
+<p>failures</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="ignored">
+<div class="counter">0</div>
+<p>ignored</p>
+</div>
+</td>
+<td>
+<div class="infoBox" id="duration">
+<div class="counter">14.178s</div>
+<p>duration</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+</td>
+<td>
+<div class="infoBox failures" id="successRate">
+<div class="percent">0%</div>
+<p>successful</p>
+</div>
+</td>
+</tr>
+</table>
+</div>
+<div id="tabs">
+<ul class="tabLinks">
+<li>
+<a href="#tab0">Failed tests</a>
+</li>
+<li>
+<a href="#tab1">Tests</a>
+</li>
+<li>
+<a href="#tab2">Standard output</a>
+</li>
+<li>
+<a href="#tab3">Standard error</a>
+</li>
+</ul>
+<div id="tab0" class="tab">
+<h2>Failed tests</h2>
+<div class="test">
+<a name="inbox_mulipleMails_showsAllInboxDataCorrectly"></a>
+<h3 class="failures">inbox_mulipleMails_showsAllInboxDataCorrectly</h3>
+<span class="code">
+<pre>java.lang.AssertionError: Expected mailbox server to implement DMTP2.0
+Expected: is &quot;ok DMTP2.0&quot;
+     but: was &quot;ok DMTP&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:114)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: a string containing &quot;ok&quot;
+     but: was &quot;error invalid Request&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.sendAndVerify(JunitSocketClient.java:103)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:120)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: is &quot;ok DMTP2.0&quot;
+     but: was &quot;ok DMTP&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:127)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: a string containing &quot;ok&quot;
+     but: was &quot;error invalid Request&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.sendAndVerify(JunitSocketClient.java:103)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:133)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: is &quot;ok DMTP2.0&quot;
+     but: was &quot;ok DMTP&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:140)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: a string containing &quot;ok&quot;
+     but: was &quot;error invalid Request&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.sendAndVerify(JunitSocketClient.java:103)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:146)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: inbox output did not contain all data from first mail
+Expected: (a string containing &quot;trillian@earth.planet&quot; and a string containing &quot;arthur@earth.planet&quot; and a string containing &quot;somesubject&quot; and a string containing &quot;somedata&quot;)
+     but: a string containing &quot;trillian@earth.planet&quot; was &quot;&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:156)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: inbox output did not contain all data from second mail
+Expected: (a string containing &quot;zaphod@univer.ze&quot; and a string containing &quot;zaphodsubject&quot; and a string containing &quot;zaphoddata&quot;)
+     but: a string containing &quot;zaphod@univer.ze&quot; was &quot;&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at dslab.client.MessageClientMailboxTest.inbox_mulipleMails_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:162)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+</div>
+<div class="test">
+<a name="inbox_singleMail_showsAllInboxDataCorrectly"></a>
+<h3 class="failures">inbox_singleMail_showsAllInboxDataCorrectly</h3>
+<span class="code">
+<pre>java.lang.AssertionError: Expected mailbox server to implement DMTP2.0
+Expected: is &quot;ok DMTP2.0&quot;
+     but: was &quot;ok DMTP&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at dslab.client.MessageClientMailboxTest.inbox_singleMail_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:85)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: a string containing &quot;ok&quot;
+     but: was &quot;error invalid Request&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.sendAndVerify(JunitSocketClient.java:103)
+	at dslab.client.MessageClientMailboxTest.inbox_singleMail_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:91)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+<span class="code">
+<pre>java.lang.AssertionError: 
+Expected: (a string containing &quot;trillian@earth.planet&quot; and a string containing &quot;arthur@earth.planet&quot; and a string containing &quot;somesubject&quot; and a string containing &quot;somedata&quot;)
+     but: a string containing &quot;trillian@earth.planet&quot; was &quot;&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.client.MessageClientMailboxTest.inbox_singleMail_showsAllInboxDataCorrectly(MessageClientMailboxTest.java:101)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</pre>
+</span>
+</div>
+</div>
+<div id="tab1" class="tab">
+<h2>Tests</h2>
+<table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Duration</th>
+<th>Result</th>
+</tr>
+</thead>
+<tr>
+<td class="failures">inbox_mulipleMails_showsAllInboxDataCorrectly</td>
+<td class="failures">8.125s</td>
+<td class="failures">failed</td>
+</tr>
+<tr>
+<td class="failures">inbox_singleMail_showsAllInboxDataCorrectly</td>
+<td class="failures">6.053s</td>
+<td class="failures">failed</td>
+</tr>
+</table>
+</div>
+<div id="tab2" class="tab">
+<h2>Standard output</h2>
+<span class="code">
+<pre>Exiting the shell, bye!
+Exiting the shell, bye!
+</pre>
+</span>
+</div>
+<div id="tab3" class="tab">
+<h2>Standard error</h2>
+<span class="code">
+<pre>Dec 04, 2022 6:52:22 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Creating mailbox server
+Dec 04, 2022 6:52:22 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Waiting for mailbox server sockets
+Dec 04, 2022 6:52:22 PM dslab.mailbox.MailboxServer run
+INFO: Server is up!
+Dec 04, 2022 6:52:22 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Starting message client
+Dec 04, 2022 6:52:22 PM dslab.mailbox.ClientCommunicator readLine
+SEVERE: Connection reset
+Dec 04, 2022 6:52:22 PM dslab.mailbox.ClientCommunicator readLine
+SEVERE: Connection reset
+Dec 04, 2022 6:52:25 PM dslab.mailbox.MessageStorage put
+INFO: put:(user: trillian value: Email{from='arthur@earth.planet', to='trillian@earth.planet', subject='somesubject', data='somedata', domains='null'})
+Dec 04, 2022 6:52:25 PM dslab.mailbox.MessageStorage put
+INFO: put:(user: trillian value: Email{from='zaphod@univer.ze', to='trillian@earth.planet', subject='zaphodsubject', data='zaphoddata', domains='null'})
+Dec 04, 2022 6:52:25 PM dslab.mailbox.MessageStorage put
+INFO: put:(user: arthur value: Email{from='zaphod@univer.ze', to='arthur@earth.planet', subject='nottrilliansubject', data='nottrilliandata', domains='null'})
+Dec 04, 2022 6:52:30 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+Dec 04, 2022 6:52:30 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+Dec 04, 2022 6:52:30 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Creating mailbox server
+Dec 04, 2022 6:52:30 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Waiting for mailbox server sockets
+Dec 04, 2022 6:52:30 PM dslab.mailbox.MailboxServer run
+INFO: Server is up!
+Dec 04, 2022 6:52:30 PM dslab.client.MessageClientMailboxTest setUp
+INFO: Starting message client
+Dec 04, 2022 6:52:30 PM dslab.mailbox.ClientCommunicator readLine
+SEVERE: Connection reset
+Dec 04, 2022 6:52:33 PM dslab.mailbox.MessageStorage put
+INFO: put:(user: trillian value: Email{from='arthur@earth.planet', to='trillian@earth.planet', subject='somesubject', data='somedata', domains='null'})
+Dec 04, 2022 6:52:36 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+</pre>
+</span>
+</div>
+</div>
+<div id="footer">
+<p>
+<div>
+<label class="hidden" id="label-for-line-wrapping-toggle" for="line-wrapping-toggle">Wrap lines
+<input id="line-wrapping-toggle" type="checkbox" autocomplete="off"/>
+</label>
+</div>Generated by 
+<a href="http://www.gradle.org">Gradle 6.6.1</a> at 4 Dec 2022, 18:52:52</p>
+</div>
+</div>
+</body>
+</html>

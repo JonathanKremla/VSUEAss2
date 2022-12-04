@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dslab.client.MessageClientStartupTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2022-12-04T17:52:36" hostname="Jonathans-MacBook-Air.local" time="15.071">
+  <properties/>
+  <testcase name="startClient_shouldConnectToMailboxServerAndSendStartsecure" classname="dslab.client.MessageClientStartupTest" time="15.071">
+    <failure message="org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds" type="org.junit.runners.model.TestTimedOutException">org.junit.runners.model.TestTimedOutException: test timed out after 15000 milliseconds
+	at java.base@11.0.2/jdk.internal.misc.Unsafe.park(Native Method)
+	at java.base@11.0.2/java.util.concurrent.locks.LockSupport.park(LockSupport.java:194)
+	at java.base@11.0.2/java.util.concurrent.locks.AbstractQueuedSynchronizer.parkAndCheckInterrupt(AbstractQueuedSynchronizer.java:885)
+	at java.base@11.0.2/java.util.concurrent.locks.AbstractQueuedSynchronizer.doAcquireSharedInterruptibly(AbstractQueuedSynchronizer.java:1039)
+	at java.base@11.0.2/java.util.concurrent.locks.AbstractQueuedSynchronizer.acquireSharedInterruptibly(AbstractQueuedSynchronizer.java:1345)
+	at java.base@11.0.2/java.util.concurrent.CountDownLatch.await(CountDownLatch.java:232)
+	at app//dslab.client.MessageClientStartupTest.startClient_shouldConnectToMailboxServerAndSendStartsecure(MessageClientStartupTest.java:78)
+	at java.base@11.0.2/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base@11.0.2/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base@11.0.2/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base@11.0.2/java.lang.reflect.Method.invoke(Method.java:566)
+	at app//org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at app//org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at app//org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at app//org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at app//org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base@11.0.2/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base@11.0.2/java.lang.Thread.run(Thread.java:834)
+</failure>
+  </testcase>
+  <system-out><![CDATA[]]></system-out>
+  <system-err><![CDATA[Dec 04, 2022 6:52:36 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+Dec 04, 2022 6:52:36 PM dslab.SimpleTcpServer run
+INFO: Starting mock server on 11323
+Dec 04, 2022 6:52:36 PM dslab.SimpleTcpServer run
+INFO: Listening on client connection
+Dec 04, 2022 6:52:36 PM dslab.SimpleTcpServer run
+INFO: Processing client connection Socket[addr=/127.0.0.1,port=55114,localport=11323]
+Dec 04, 2022 6:52:36 PM dslab.SimpleTcpServer run
+INFO: Listening on client connection
+Dec 04, 2022 6:52:51 PM dslab.SimpleTcpServer close
+INFO: Closing server socket
+Dec 04, 2022 6:52:51 PM dslab.SimpleTcpServer close
+INFO: Closing server socket
+]]></system-err>
+</testsuite>

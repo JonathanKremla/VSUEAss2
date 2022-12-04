@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<testsuite name="dslab.mailbox.MailboxStartsecureTest" tests="1" skipped="0" failures="1" errors="0" timestamp="2022-12-04T17:51:04" hostname="Jonathans-MacBook-Air.local" time="4.035">
+  <properties/>
+  <testcase name="sendStartsecure" classname="dslab.mailbox.MailboxStartsecureTest" time="4.035">
+    <failure message="java.lang.AssertionError: &#10;Expected: a string containing &quot;ok DMAP2.0&quot;&#10;     but: was &quot;ok DMAP&quot;" type="java.lang.AssertionError">java.lang.AssertionError: 
+Expected: a string containing &quot;ok DMAP2.0&quot;
+     but: was &quot;ok DMAP&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.verify(JunitSocketClient.java:92)
+	at dslab.mailbox.MailboxStartsecureTest.sendStartsecure(MailboxStartsecureTest.java:58)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</failure>
+    <failure message="java.lang.AssertionError: &#10;Expected: a string containing &quot;ok mailbox-earth-planet&quot;&#10;     but: was &quot;error&quot;" type="java.lang.AssertionError">java.lang.AssertionError: 
+Expected: a string containing &quot;ok mailbox-earth-planet&quot;
+     but: was &quot;error&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:54)
+	at dslab.JunitSocketClient.assertThat(JunitSocketClient.java:120)
+	at dslab.JunitSocketClient.sendAndVerify(JunitSocketClient.java:103)
+	at dslab.mailbox.MailboxStartsecureTest.sendStartsecure(MailboxStartsecureTest.java:61)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</failure>
+    <failure message="java.lang.AssertionError: Expected server response to be Base64 encoded&#10;Expected: a string matching &quot;^(?:[a-zA-Z0-9+/]{4})*(?:[a-zA-Z0-9+/]{2}==|[a-zA-Z0-9+/]{3}=)?$&quot;&#10;     but: was &quot;error&quot;" type="java.lang.AssertionError">java.lang.AssertionError: Expected server response to be Base64 encoded
+Expected: a string matching &quot;^(?:[a-zA-Z0-9+/]{4})*(?:[a-zA-Z0-9+/]{2}==|[a-zA-Z0-9+/]{3}=)?$&quot;
+     but: was &quot;error&quot;
+	at org.hamcrest.MatcherAssert.assertThat(MatcherAssert.java:20)
+	at org.junit.Assert.assertThat(Assert.java:956)
+	at org.junit.rules.ErrorCollector$1.call(ErrorCollector.java:65)
+	at org.junit.rules.ErrorCollector.checkSucceeds(ErrorCollector.java:78)
+	at org.junit.rules.ErrorCollector.checkThat(ErrorCollector.java:63)
+	at dslab.mailbox.MailboxStartsecureTest.sendStartsecure(MailboxStartsecureTest.java:68)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke0(Native Method)
+	at java.base/jdk.internal.reflect.NativeMethodAccessorImpl.invoke(NativeMethodAccessorImpl.java:62)
+	at java.base/jdk.internal.reflect.DelegatingMethodAccessorImpl.invoke(DelegatingMethodAccessorImpl.java:43)
+	at java.base/java.lang.reflect.Method.invoke(Method.java:566)
+	at org.junit.runners.model.FrameworkMethod$1.runReflectiveCall(FrameworkMethod.java:50)
+	at org.junit.internal.runners.model.ReflectiveCallable.run(ReflectiveCallable.java:12)
+	at org.junit.runners.model.FrameworkMethod.invokeExplosively(FrameworkMethod.java:47)
+	at org.junit.internal.runners.statements.InvokeMethod.evaluate(InvokeMethod.java:17)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:298)
+	at org.junit.internal.runners.statements.FailOnTimeout$CallableStatement.call(FailOnTimeout.java:292)
+	at java.base/java.util.concurrent.FutureTask.run(FutureTask.java:264)
+	at java.base/java.lang.Thread.run(Thread.java:834)
+</failure>
+  </testcase>
+  <system-out><![CDATA[Exiting the shell, bye!
+]]></system-out>
+  <system-err><![CDATA[Dec 04, 2022 6:51:04 PM dslab.mailbox.MailboxServerProtocolTest setUp
+INFO: Waiting for server sockets to appear
+Dec 04, 2022 6:51:04 PM dslab.mailbox.MailboxServer run
+INFO: Server is up!
+Dec 04, 2022 6:51:04 PM dslab.mailbox.ClientCommunicator readLine
+SEVERE: Connection reset
+Dec 04, 2022 6:51:05 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+Dec 04, 2022 6:51:05 PM dslab.mailbox.ClientCommunicator establishConnection
+SEVERE: SocketException while handling socket: Socket closed
+]]></system-err>
+</testsuite>
