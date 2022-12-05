@@ -17,7 +17,7 @@ public class MessageClient implements IMessageClient, Runnable {
      * @param out the output stream to write console output to
      */
     public MessageClient(String componentId, Config config, InputStream in, PrintStream out) {
-
+    //TODO
     }
 
     @Override
