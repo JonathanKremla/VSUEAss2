@@ -17,16 +17,18 @@ public class DmapCommunicationThread implements Runnable {
 
   private ClientCommunicator communicator;
   private String users;
+  private final String componentId;
 
-  public DmapCommunicationThread(ClientCommunicator communicator, String users) {
+  public DmapCommunicationThread(ClientCommunicator communicator, String users, String componentId) {
     this.communicator = communicator;
     this.users = users;
+    this.componentId = componentId;
   }
 
   public void run() {
-    DmapRequestHandler dmapRequestHandler = new DmapRequestHandler(users);
+    Dmap2RequestHandler dmapRequestHandler = new Dmap2RequestHandler(users, componentId);
     String request;
-    communicator.println("ok DMAP");
+    communicator.println("ok DMAP2.0");
     communicator.flush();
     // read client requests
     while ((request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {

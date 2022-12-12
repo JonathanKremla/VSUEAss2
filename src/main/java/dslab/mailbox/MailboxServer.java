@@ -24,6 +24,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
   private final String users;
   private DmapListenerThread dmapListenerThread;
   private DmtpListenerThread dmtpListenerThread;
+  private final String componentId;
 
   /**
    * Creates a new server instance.
@@ -40,6 +41,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
     users = config.getString("users.config");
     tcpDmapPort = config.getInt("dmap.tcp.port");
     tcpDmtpPort = config.getInt("dmtp.tcp.port");
+    this.componentId = componentId;
   }
 
   public static void main(String[] args) throws Exception {
@@ -73,7 +75,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
   private void createDmapListenerThread() {
     try {
       ServerSocket dmapSocket = new ServerSocket(tcpDmapPort);
-      dmapListenerThread = new DmapListenerThread(dmapSocket, users);
+      dmapListenerThread = new DmapListenerThread(dmapSocket, users, componentId);
       dmapListenerThread.start();
     } catch (IOException e) {
       LOG.error(e.getMessage());
