@@ -37,7 +37,7 @@ public class MessageClient implements IMessageClient, Runnable {
     private final PrintStream out;
     private final Shell shell;
     private BufferedReader mailboxBufferedReader;
-    private BufferedWriter mailboxBufferedWriter;
+    private BufferedWriter mailboxServerBufferedWriter;
 
     /**
      * Creates a new client instance.
@@ -60,26 +60,31 @@ public class MessageClient implements IMessageClient, Runnable {
 
     @Override
     public void run() {
+
         try {
-            shell.run();
+            System.out.println("000");
 
             Socket clientSocket = new Socket(config.getString("mailbox.host"), config.getInt("mailbox.port"));
             mailboxBufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            mailboxBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+            mailboxServerBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+
+            String line = mailboxBufferedReader.readLine(); // just to read the ok DMAP2.0
+            System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
             // todo: here the code for "startsecure" will be inserted
-            mailboxBufferedWriter.write(
+            mailboxServerBufferedWriter.write(
                     "login "
                     + config.getString("mailbox.user")
                     + " "
                     + config.getString("mailbox.password")
                     + "\n"
             );
-            mailboxBufferedWriter.flush();
+            mailboxServerBufferedWriter.flush();
 
-            String line = mailboxBufferedReader.readLine();
+            line =  mailboxBufferedReader.readLine();
             System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + line);
 
+            shell.run();
         } catch (IOException e) {
             System.out.println("ERROR client socket");
         }
@@ -93,17 +98,29 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void inbox() {
         try {
-            mailboxBufferedWriter.write("list\n");
-            mailboxBufferedWriter.flush();
+            // todo: what should "list" with inbox do, if inbox empty?
+            mailboxServerBufferedWriter.write("list\n");
+            mailboxServerBufferedWriter.flush();
+            System.out.println("Waiting on response after list command...");
 
-            String listResponse = mailboxBufferedReader.readLine();
 
-            List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(listResponse);
-
-            for (String message : allMessagesInDetailFormat) {
-                out.println("AAA");
+            String totalString = "";
+            String readString = mailboxBufferedReader.readLine() + "\n";
+            while ( ! readString.equals("ok\n")) {
+                totalString += readString;
+                readString = mailboxBufferedReader.readLine() + "\n";
+                System.out.printf("totalString:%n%s%n", totalString);
             }
 
+            System.out.println("AAA");
+
+            List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
+
+            System.out.println("BBB");
+
+            for (String message : allMessagesInDetailFormat) {
+                shell.out().println(message);
+            }
         } catch (IOException e) {
             e.printStackTrace();
         }
@@ -120,12 +137,23 @@ public class MessageClient implements IMessageClient, Runnable {
             String id = message.split(" ")[0];
 
             try {
-                mailboxBufferedWriter.write("show " + id + "\n");
-                mailboxBufferedWriter.flush();
-                String showResponse = mailboxBufferedReader.readLine();
+                mailboxServerBufferedWriter.write("show " + id + "\n");
+                mailboxServerBufferedWriter.flush();
 
-                String totalString = "MESSAGE WITH ID " + id + ": \n";
-                totalString += showResponse + '\n';
+                String totalString = "\nMESSAGE WITH ID " + id + ": \n";
+
+                String from = mailboxBufferedReader.readLine();
+                totalString += from + '\n';
+                String to = mailboxBufferedReader.readLine();
+                totalString += to + '\n';
+                String subject = mailboxBufferedReader.readLine();
+                totalString += subject + '\n';
+                String data = mailboxBufferedReader.readLine();
+                totalString += data + '\n';
+
+                // just read the "ok" at the end of show, but don't treat it
+                String ok = mailboxBufferedReader.readLine();
+                System.out.println("THE FOLLOWING SHOULD BE \"ok\": " + ok);
 
                 allMessagesInDetailFormat.add(totalString);
 
@@ -147,8 +175,8 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void delete(String id) {
         try {
-            mailboxBufferedWriter.write("delete + " + id + "\n");
-            mailboxBufferedWriter.flush();
+            mailboxServerBufferedWriter.write("delete + " + id + "\n");
+            mailboxServerBufferedWriter.flush();
             String serverResponse = mailboxBufferedReader.readLine();
 
             if (serverResponse.startsWith("error")) {
@@ -176,8 +204,8 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void verify(String id) {
         try {
-            mailboxBufferedWriter.write("show + " + id + "\n");
-            mailboxBufferedWriter.flush();
+            mailboxServerBufferedWriter.write("show + " + id + "\n");
+            mailboxServerBufferedWriter.flush();
             String serverResponse = mailboxBufferedReader.readLine();
 
             String messageText = parseIntoFormat(serverResponse);
