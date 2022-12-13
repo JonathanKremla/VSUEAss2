@@ -70,7 +70,7 @@ public class DmtpRequestHandler {
 
     // "The generated hash is a 32 byte value"
     if (bytes.length != 32) {
-      return "error invalid request (3)";
+      // todo: return "error invalid request (3)"; ???
     }
 
     receivedEmail.setHash(hash);

@@ -26,7 +26,7 @@ public class DmapCommunicationThread implements Runnable {
   public void run() {
     DmapRequestHandler dmapRequestHandler = new DmapRequestHandler(users);
     String request;
-    communicator.println("ok DMAP");
+    communicator.println("ok DMAP2.0");
     communicator.flush();
     // read client requests
     while ((request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {

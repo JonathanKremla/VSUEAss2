@@ -8,7 +8,6 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
-import java.net.InetAddress;
 import java.net.Socket;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
@@ -17,6 +16,8 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.List;
 
+import at.ac.tuwien.dsg.orvell.Shell;
+import at.ac.tuwien.dsg.orvell.annotation.Command;
 import dslab.ComponentFactory;
 import dslab.util.Config;
 import dslab.util.Keys;
@@ -24,14 +25,19 @@ import dslab.util.Keys;
 import javax.crypto.SecretKey;
 import javax.crypto.Mac;
 
+import static dslab.util.Util.getDomainName;
+import static dslab.util.Util.getWholeSocketAddress;
+import static java.lang.Integer.parseInt;
+
 public class MessageClient implements IMessageClient, Runnable {
 
     private final String componentId;
     private final Config config;
     private final InputStream in;
     private final PrintStream out;
-    private BufferedReader bufferedReader;
-    private BufferedWriter bufferedWriter;
+    private final Shell shell;
+    private BufferedReader mailboxBufferedReader;
+    private BufferedWriter mailboxBufferedWriter;
 
     /**
      * Creates a new client instance.
@@ -46,26 +52,32 @@ public class MessageClient implements IMessageClient, Runnable {
         this.config = config;
         this.in = in;
         this.out = out;
+
+        this.shell = new Shell(in, out);
+        shell.register(this);
+        shell.setPrompt(componentId + "-mailbox> ");
     }
 
     @Override
     public void run() {
         try {
+            shell.run();
+
             Socket clientSocket = new Socket(config.getString("mailbox.host"), config.getInt("mailbox.port"));
-            bufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
-            bufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
+            mailboxBufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
+            mailboxBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
             // todo: here the code for "startsecure" will be inserted
-            bufferedWriter.write(
+            mailboxBufferedWriter.write(
                     "login "
                     + config.getString("mailbox.user")
                     + " "
                     + config.getString("mailbox.password")
                     + "\n"
             );
-            bufferedWriter.flush();
+            mailboxBufferedWriter.flush();
 
-            String line = bufferedReader.readLine();
+            String line = mailboxBufferedReader.readLine();
             System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + line);
 
         } catch (IOException e) {
@@ -77,24 +89,26 @@ public class MessageClient implements IMessageClient, Runnable {
     /**
      * Outputs the contents of the user's inbox on the shell.
      */
+    @Command
     @Override
     public void inbox() {
         try {
-            bufferedWriter.write("list\n");
-            bufferedWriter.flush();
+            mailboxBufferedWriter.write("list\n");
+            mailboxBufferedWriter.flush();
 
-            String listResponse = bufferedReader.readLine();
+            String listResponse = mailboxBufferedReader.readLine();
 
             List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(listResponse);
 
             for (String message : allMessagesInDetailFormat) {
-                System.out.println(message);
+                out.println("AAA");
             }
 
         } catch (IOException e) {
             e.printStackTrace();
         }
     }
+
 
     private List<String> getAllMessagesInDetailFormat(String listResponse) {
         String[] allMessages = listResponse.split("\n");
@@ -106,9 +120,9 @@ public class MessageClient implements IMessageClient, Runnable {
             String id = message.split(" ")[0];
 
             try {
-                bufferedWriter.write("show " + id + "\n");
-                bufferedWriter.flush();
-                String showResponse = bufferedReader.readLine();
+                mailboxBufferedWriter.write("show " + id + "\n");
+                mailboxBufferedWriter.flush();
+                String showResponse = mailboxBufferedReader.readLine();
 
                 String totalString = "MESSAGE WITH ID " + id + ": \n";
                 totalString += showResponse + '\n';
@@ -130,11 +144,12 @@ public class MessageClient implements IMessageClient, Runnable {
      * @param id the mail id
      */
     @Override
+    @Command
     public void delete(String id) {
         try {
-            bufferedWriter.write("delete + " + id + "\n");
-            bufferedWriter.flush();
-            String serverResponse = bufferedReader.readLine();
+            mailboxBufferedWriter.write("delete + " + id + "\n");
+            mailboxBufferedWriter.flush();
+            String serverResponse = mailboxBufferedReader.readLine();
 
             if (serverResponse.startsWith("error")) {
                 System.out.println(serverResponse);
@@ -158,11 +173,12 @@ public class MessageClient implements IMessageClient, Runnable {
      * @param id the message id
      */
     @Override
+    @Command
     public void verify(String id) {
         try {
-            bufferedWriter.write("show + " + id + "\n");
-            bufferedWriter.flush();
-            String serverResponse = bufferedReader.readLine();
+            mailboxBufferedWriter.write("show + " + id + "\n");
+            mailboxBufferedWriter.flush();
+            String serverResponse = mailboxBufferedReader.readLine();
 
             String messageText = parseIntoFormat(serverResponse);
             String hash = getHash(serverResponse);
@@ -254,6 +270,7 @@ public class MessageClient implements IMessageClient, Runnable {
      * @param data the message data
      */
     @Override
+    @Command
     public void msg(String to, String subject, String data) {
         try {
             String from = config.getString("transfer.email");
@@ -270,51 +287,65 @@ public class MessageClient implements IMessageClient, Runnable {
 
             String hash = new String(hashBytes, StandardCharsets.UTF_8);
 
-            bufferedWriter.write("begin\n");
-            bufferedWriter.flush();
-            String line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+            String[] emails = to.split(",");
+            if (emails.length == 0) throw new RuntimeException("Fatal Error 1");
 
-            bufferedWriter.write("to " + to + '\n');
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+            for (String email : emails) {
+                String targetAddress = getWholeSocketAddress(getDomainName(email)); // format: ip-address:port
+                String[] portDomain = targetAddress.split(":");
+                assert(portDomain.length == 2);
+                Socket socket = new Socket(portDomain[0], parseInt(portDomain[1]));
 
-            bufferedWriter.write("from " + from + '\n');
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-            bufferedWriter.write("subject " + subject + '\n');
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                bufferedWriter.write("begin\n");
+                bufferedWriter.flush();
+                String line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
 
-            bufferedWriter.write("data " + data + '\n');
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                bufferedWriter.write("to " + to + '\n');
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
 
-            bufferedWriter.write("hash " + hash + '\n');
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                bufferedWriter.write("from " + from + '\n');
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
 
-            bufferedWriter.write("send\n");
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                bufferedWriter.write("subject " + subject + '\n');
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
 
-            bufferedWriter.write("quit\n");
-            bufferedWriter.flush();
-            line = bufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
+                bufferedWriter.write("data " + data + '\n');
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
+
+                bufferedWriter.write("hash " + hash + '\n');
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
+
+                bufferedWriter.write("send\n");
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
+
+                bufferedWriter.write("quit\n");
+                bufferedWriter.flush();
+                line = bufferedReader.readLine();
+                System.out.println("CLIENT READS LINE: " + line);
+            }
         } catch (IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             e.printStackTrace();
         }
     }
 
     @Override
+    @Command
     public void shutdown() {
 
     }
