@@ -11,7 +11,6 @@ public class Email {
   private String subject;
   private String data;
   private List<String> domains;
-  private String hash;
 
   public Email() {
   }
@@ -21,14 +20,6 @@ public class Email {
     this.to = to;
     this.subject = subject;
     this.data = data;
-  }
-
-  public String getHash() {
-    return hash;
-  }
-
-  public void setHash(String hash) {
-    this.hash = hash;
   }
 
   public String getFrom() {

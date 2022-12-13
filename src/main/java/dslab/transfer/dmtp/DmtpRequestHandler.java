@@ -41,34 +41,11 @@ public class DmtpRequestHandler extends Thread {
         return parseSubject(request);
       case "data":
         return parseData(request);
-      case "hash":
-        return parseHash(request);
       case "send":
         return parseSend();
       default:
         return "error invalid Request";
     }
-  }
-
-  private String parseHash(String request) {
-    if (!transferBegan) {
-      return "error invalid request (1)";
-    }
-
-    String[] args = request.split(" ");
-    if (args.length != 2) {
-      return "error invalid request (2)";
-    }
-    String hash = args[1];
-    byte[] bytes = hash.getBytes();
-
-    // "The generated hash is a 32 byte value"
-    if (bytes.length != 32) {
-      return "error invalid request (3)";
-    }
-
-    receivedEmail.setHash(hash);
-    return "ok";
   }
 
   private String parseTo(String request) {
