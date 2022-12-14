@@ -87,6 +87,7 @@ public class DmapRequestHandler {
         responseList.add(i + " " + message.getFrom() + " " + message.getSubject());
       }
     }
+    responseList.add("ok");
     responseMap.put("list", responseList);
   }
 
@@ -99,7 +100,9 @@ public class DmapRequestHandler {
         responseList.add("from " + message.getFrom() + "\n" +
                 "to " + message.getTo() + "\n" +
                 "subject " + message.getSubject() + "\n" +
-                "data " + message.getData());
+                "data " + message.getData() + "\n" +
+                "hash " + message.getHash() + "\n" +
+                "ok");
         responseMap.put("show " + i, responseList);
       }
     }

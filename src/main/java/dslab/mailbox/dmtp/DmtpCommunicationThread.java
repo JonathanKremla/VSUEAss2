@@ -28,7 +28,7 @@ public class DmtpCommunicationThread implements Runnable {
 
     DmtpRequestHandler requestHandler = new DmtpRequestHandler(domain, users);
     String request;
-    communicator.println("ok DMTP");
+    communicator.println("ok DMTP2.0");
     communicator.flush();
     // read client requests
     while ((request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
