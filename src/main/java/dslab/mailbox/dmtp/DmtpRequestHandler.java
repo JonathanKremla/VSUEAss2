@@ -66,12 +66,6 @@ public class DmtpRequestHandler {
       return "error invalid request (2)";
     }
     String hash = args[1];
-    byte[] bytes = hash.getBytes();
-
-    // "The generated hash is a 32 byte value"
-    if (bytes.length != 32) {
-      // todo: return "error invalid request (3)"; ???
-    }
 
     receivedEmail.setHash(hash);
     return "ok";
