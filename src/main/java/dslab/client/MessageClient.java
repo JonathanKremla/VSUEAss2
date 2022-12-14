@@ -14,6 +14,7 @@ import java.security.InvalidKeyException;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
+import java.util.Base64;
 import java.util.List;
 
 import at.ac.tuwien.dsg.orvell.Shell;
@@ -60,10 +61,8 @@ public class MessageClient implements IMessageClient, Runnable {
 
     @Override
     public void run() {
-
         try {
             System.out.println("000");
-
             Socket clientSocket = new Socket(config.getString("mailbox.host"), config.getInt("mailbox.port"));
             mailboxBufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             mailboxServerBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
@@ -88,7 +87,6 @@ public class MessageClient implements IMessageClient, Runnable {
         } catch (IOException e) {
             System.out.println("ERROR client socket");
         }
-
     }
 
     /**
@@ -98,28 +96,32 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void inbox() {
         try {
-            // todo: what should "list" with inbox do, if inbox empty?
             mailboxServerBufferedWriter.write("list\n");
             mailboxServerBufferedWriter.flush();
             System.out.println("Waiting on response after list command...");
 
-
             String totalString = "";
             String readString = mailboxBufferedReader.readLine() + "\n";
+            boolean emptyInbox = readString.equals("ok\n");
+
             while ( ! readString.equals("ok\n")) {
                 totalString += readString;
                 readString = mailboxBufferedReader.readLine() + "\n";
                 System.out.printf("totalString:%n%s%n", totalString);
             }
 
-            System.out.println("AAA");
+            if (emptyInbox) {
+                shell.out().println("Your inbox is empty.");
+            } else {
+                System.out.println("AAA");
 
-            List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
+                List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
 
-            System.out.println("BBB");
+                System.out.println("BBB");
 
-            for (String message : allMessagesInDetailFormat) {
-                shell.out().println(message);
+                for (String message : allMessagesInDetailFormat) {
+                    shell.out().println(message);
+                }
             }
         } catch (IOException e) {
             e.printStackTrace();
@@ -151,6 +153,9 @@ public class MessageClient implements IMessageClient, Runnable {
                 String data = mailboxBufferedReader.readLine();
                 totalString += data + '\n';
 
+                String hash = mailboxBufferedReader.readLine();
+                System.out.println("THE FOLLOWING SHOULD BE \"a hash\": " + hash);
+
                 // just read the "ok" at the end of show, but don't treat it
                 String ok = mailboxBufferedReader.readLine();
                 System.out.println("THE FOLLOWING SHOULD BE \"ok\": " + ok);
@@ -175,18 +180,15 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void delete(String id) {
         try {
-            mailboxServerBufferedWriter.write("delete + " + id + "\n");
+            mailboxServerBufferedWriter.write("delete " + id + "\n");
             mailboxServerBufferedWriter.flush();
             String serverResponse = mailboxBufferedReader.readLine();
 
             if (serverResponse.startsWith("error")) {
-                System.out.println(serverResponse);
+                shell.out().println(serverResponse);
             } else {
-                System.out.println("ok");
+                shell.out().println("ok");
             }
-
-            System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + serverResponse);
-
 
         } catch (IOException e) {
             e.printStackTrace();
@@ -204,25 +206,37 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void verify(String id) {
         try {
-            mailboxServerBufferedWriter.write("show + " + id + "\n");
+            mailboxServerBufferedWriter.write("show " + id + "\n");
             mailboxServerBufferedWriter.flush();
-            String serverResponse = mailboxBufferedReader.readLine();
 
-            String messageText = parseIntoFormat(serverResponse);
-            String hash = getHash(serverResponse);
+
+            String totalString = "";
+            String readString = mailboxBufferedReader.readLine() + "\n";
+            while ( ! readString.equals("ok\n")) {
+                if (readString.startsWith("error")) {
+                    shell.out().println("error - message integrity could not be verified because the message could not be found");
+                    return;
+                }
+                totalString += readString;
+                readString = mailboxBufferedReader.readLine() + "\n";
+                System.out.printf("totalString:%n%s%n", totalString);
+            }
+
+            String messageText = parseIntoFormat(totalString);
+            String hash = getHash(totalString);
 
             if (hash == null) {
-                System.out.println("error - message integrity could not be verified because the message did not have a hash");
+                shell.out().println("error - message integrity could not be verified because the message did not have a hash");
             } else {
-                byte[] receivedHash = hash.getBytes();
+                byte[] receivedHash = Base64.getDecoder().decode(hash);
                 byte[] computedHash = computeHash(messageText);
 
                 boolean validHash = MessageDigest.isEqual(computedHash, receivedHash);
 
                 if (validHash) {
-                    System.out.println("ok - message integrity was successfully verified");
+                    shell.out().println("ok - message integrity was successfully verified");
                 } else {
-                    System.out.println("error - message integrity could not be verified");
+                    shell.out().println("error - message integrity could not be verified - invalid");
                 }
             }
         } catch (IOException ioe) {
@@ -270,14 +284,14 @@ public class MessageClient implements IMessageClient, Runnable {
         String[] lines = wholeMessageString.split("\n");
 
         for (String line : lines) {
-            if (line.startsWith("hash")) continue;
+            if (line.startsWith("hash") || line.equals("ok")) continue;
 
             finalString
                     .append(line.split(" ", 2)[1])
                     .append("\n");
         }
 
-        return finalString.toString();
+        return finalString.toString().substring(0,finalString.length()-1);
     }
 
     private byte[] computeHash(String messageText) throws IOException, NoSuchAlgorithmException, InvalidKeyException {
@@ -303,11 +317,15 @@ public class MessageClient implements IMessageClient, Runnable {
         try {
             String from = config.getString("transfer.email");
 
+            // because the format is: msg <to> "<subject>" "<data>"
+            String subjectWithoutQuotes = subject.substring(1,subject.length()-1);
+            String dataWithoutQuotes = data.substring(1,data.length()-1);
+
             String messageTextWithoutHash = "";
             messageTextWithoutHash += from + "\n";
             messageTextWithoutHash += to + "\n";
-            messageTextWithoutHash += subject + "\n";
-            messageTextWithoutHash += data + "\n";
+            messageTextWithoutHash += subjectWithoutQuotes + "\n";
+            messageTextWithoutHash += dataWithoutQuotes + "\n";
 
             String formattedText = parseIntoFormat(messageTextWithoutHash);
 
@@ -327,6 +345,7 @@ public class MessageClient implements IMessageClient, Runnable {
                 BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                 BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
+                // todo still: print error <optionally a description> when message sending failed for any reason
                 bufferedWriter.write("begin\n");
                 bufferedWriter.flush();
                 String line = bufferedReader.readLine();
@@ -342,12 +361,12 @@ public class MessageClient implements IMessageClient, Runnable {
                 line = bufferedReader.readLine();
                 System.out.println("CLIENT READS LINE: " + line);
 
-                bufferedWriter.write("subject " + subject + '\n');
+                bufferedWriter.write("subject " + subjectWithoutQuotes + '\n');
                 bufferedWriter.flush();
                 line = bufferedReader.readLine();
                 System.out.println("CLIENT READS LINE: " + line);
 
-                bufferedWriter.write("data " + data + '\n');
+                bufferedWriter.write("data " + dataWithoutQuotes + '\n');
                 bufferedWriter.flush();
                 line = bufferedReader.readLine();
                 System.out.println("CLIENT READS LINE: " + line);
@@ -366,6 +385,8 @@ public class MessageClient implements IMessageClient, Runnable {
                 bufferedWriter.flush();
                 line = bufferedReader.readLine();
                 System.out.println("CLIENT READS LINE: " + line);
+
+                shell.out().println("ok");
             }
         } catch (IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             e.printStackTrace();

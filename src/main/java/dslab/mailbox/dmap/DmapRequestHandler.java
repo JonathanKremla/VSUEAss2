@@ -101,6 +101,7 @@ public class DmapRequestHandler {
                 "to " + message.getTo() + "\n" +
                 "subject " + message.getSubject() + "\n" +
                 "data " + message.getData() + "\n" +
+                "hash " + message.getHash() + "\n" +
                 "ok");
         responseMap.put("show " + i, responseList);
       }
