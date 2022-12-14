@@ -9,6 +9,7 @@ import java.io.InputStreamReader;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.net.Socket;
+import java.net.SocketException;
 import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.MessageDigest;
@@ -16,6 +17,7 @@ import java.security.NoSuchAlgorithmException;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.List;
+import java.util.MissingResourceException;
 
 import at.ac.tuwien.dsg.orvell.Shell;
 import at.ac.tuwien.dsg.orvell.annotation.Command;
@@ -278,7 +280,8 @@ public class MessageClient implements IMessageClient, Runnable {
     trillian@earth.planet,ford@earth.planet
     restaurant
     i know this nice restaurant at the end of the universe, wanna go?
-     */
+        NOTE: there should actually be no newline after the last line
+    */
     private String parseIntoFormat(String wholeMessageString) {
         StringBuilder finalString = new StringBuilder();
         String[] lines = wholeMessageString.split("\n");
@@ -287,10 +290,10 @@ public class MessageClient implements IMessageClient, Runnable {
             if (line.startsWith("hash") || line.equals("ok")) continue;
 
             finalString
-                    .append(line.split(" ", 2)[1])
+                    .append(line.substring(line.indexOf(' ')))
                     .append("\n");
         }
-
+        // NOTE: substring to exclude the last '\n'
         return finalString.toString().substring(0,finalString.length()-1);
     }
 
@@ -317,76 +320,91 @@ public class MessageClient implements IMessageClient, Runnable {
         try {
             String from = config.getString("transfer.email");
 
-            // because the format is: msg <to> "<subject>" "<data>"
-            String subjectWithoutQuotes = subject.substring(1,subject.length()-1);
-            String dataWithoutQuotes = data.substring(1,data.length()-1);
+            // because the format is: msg <to> "<subject>" "<data>" ->
+//            String subjectWithoutQuotes = subject.substring(1,subject.length()-1);
+//            String dataWithoutQuotes = data.substring(1,data.length()-1);
 
-            String messageTextWithoutHash = "";
-            messageTextWithoutHash += from + "\n";
-            messageTextWithoutHash += to + "\n";
-            messageTextWithoutHash += subjectWithoutQuotes + "\n";
-            messageTextWithoutHash += dataWithoutQuotes + "\n";
+            String messageTextWithoutHashNorOk = "";
+            messageTextWithoutHashNorOk += "from " + from + "\n";
+            messageTextWithoutHashNorOk += "to " + to + "\n";
+            messageTextWithoutHashNorOk += "subject " + subject + "\n";
+            messageTextWithoutHashNorOk += "data " + data + "\n";
 
-            String formattedText = parseIntoFormat(messageTextWithoutHash);
+            String formattedText = parseIntoFormat(messageTextWithoutHashNorOk);
 
             byte[] hashBytes = computeHash(formattedText);
+            String hash = Base64.getEncoder().encodeToString(hashBytes);
 
-            String hash = new String(hashBytes, StandardCharsets.UTF_8);
+            String[] recipientEmails = to.split(",");
+            if (recipientEmails.length == 0) throw new RuntimeException("Fatal Error 1");
 
-            String[] emails = to.split(",");
-            if (emails.length == 0) throw new RuntimeException("Fatal Error 1");
+            for (String recipientEmail : recipientEmails) {
 
-            for (String email : emails) {
-                String targetAddress = getWholeSocketAddress(getDomainName(email)); // format: ip-address:port
+                String targetAddress;
+                try {
+                    targetAddress = getWholeSocketAddress(getDomainName(recipientEmail)); // format: ip-address:port
+                } catch (MissingResourceException mre) {
+                    shell.out().println("error could not find recipient: " + recipientEmail);
+                    return;
+                }
+
                 String[] portDomain = targetAddress.split(":");
                 assert(portDomain.length == 2);
-                Socket socket = new Socket(portDomain[0], parseInt(portDomain[1]));
 
-                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                String response = "no response received yet";
+                try {
+                    Socket socket = new Socket(portDomain[0], parseInt(portDomain[1]));
 
-                // todo still: print error <optionally a description> when message sending failed for any reason
-                bufferedWriter.write("begin\n");
-                bufferedWriter.flush();
-                String line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-                bufferedWriter.write("to " + to + '\n');
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("begin\n");
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("from " + from + '\n');
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("to " + to + '\n');
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("subject " + subjectWithoutQuotes + '\n');
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("from " + from + '\n');
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("data " + dataWithoutQuotes + '\n');
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("subject " + subject + '\n');
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("hash " + hash + '\n');
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("data " + data + '\n');
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("send\n");
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("hash " + hash + '\n');
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                bufferedWriter.write("quit\n");
-                bufferedWriter.flush();
-                line = bufferedReader.readLine();
-                System.out.println("CLIENT READS LINE: " + line);
+                    bufferedWriter.write("send\n");
+                    bufferedWriter.flush();
+                    response = bufferedReader.readLine();
+                    System.out.println("CLIENT READS LINE: " + response);
+                    if (response.startsWith("error")) throw new IOException("custom");
 
-                shell.out().println("ok");
+                    shell.out().println("ok");
+                } catch (IOException se) {
+                    shell.out().println("error while sending message to " + recipientEmail + "1: " + response);
+                    return;
+                }
             }
         } catch (IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             e.printStackTrace();
@@ -396,6 +414,11 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     @Command
     public void shutdown() {
+//                    bufferedWriter.write("quit\n");
+//                    bufferedWriter.flush();
+//                    line = bufferedReader.readLine();
+//                    System.out.println("CLIENT READS LINE: " + line);
+
 
     }
 
