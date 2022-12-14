@@ -47,11 +47,28 @@ public class DmtpRequestHandler {
         return parseSubject(request);
       case "data":
         return parseData(request);
+      case "hash":
+        return parseHash(request);
       case "send":
         return parseSend();
       default:
         return "error invalid Request";
     }
+  }
+
+  private String parseHash(String request) {
+    if (!transferBegan) {
+      return "error invalid request (1)";
+    }
+
+    String[] args = request.split(" ");
+    if (args.length != 2) {
+      return "error invalid request (2)";
+    }
+    String hash = args[1];
+
+    receivedEmail.setHash(hash);
+    return "ok";
   }
 
   private String parseTo(String request) {

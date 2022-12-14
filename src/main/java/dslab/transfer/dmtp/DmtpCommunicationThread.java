@@ -38,7 +38,7 @@ public class DmtpCommunicationThread implements Runnable {
     //Consumer
     sender.start();
     String request;
-    communicator.println("ok DMTP");
+    communicator.println("ok DMTP2.0");
     communicator.flush();
     // read client requests
     boolean stopped = false;

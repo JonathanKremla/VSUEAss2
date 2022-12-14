@@ -80,7 +80,6 @@ public class MessageClientMailboxTest {
 
     @Test(timeout = 20000)
     public void inbox_singleMail_showsAllInboxDataCorrectly() throws Exception {
-
         try (JunitSocketClient client = new JunitSocketClient(mailboxConfig.getInt("dmtp.tcp.port"), err)) {
             err.checkThat("Expected mailbox server to implement DMTP2.0", client.read(), is("ok DMTP2.0"));
             client.sendAndVerify("begin", "ok");
