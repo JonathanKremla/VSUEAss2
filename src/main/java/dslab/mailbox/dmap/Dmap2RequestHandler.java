@@ -2,11 +2,13 @@ package dslab.mailbox.dmap;
 
 import dslab.mailbox.MessageStorage;
 import dslab.util.Config;
+import dslab.util.Keys;
 import dslab.util.datastructures.Email;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.File;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -51,7 +53,7 @@ public class Dmap2RequestHandler {
 
             KeyFactory keyFactory = KeyFactory.getInstance("RSA");
 
-            PrivateKey myPrivKey = keyFactory.generatePrivate(keySpec);
+            PrivateKey myPrivKey = Keys.readPrivateKey(new File(privateKeyFileName));
 
             this.rsaCipher.init(Cipher.PRIVATE_KEY, myPrivKey);
         } catch (Exception e) {
@@ -103,6 +105,7 @@ public class Dmap2RequestHandler {
         if (answerString.charAt(answerString.length() - 1) == '\n') {
             answerString.deleteCharAt(answerString.length() - 1);
         }
+        System.out.println(answerString);
         byte[] messageToBytes = answerString.toString().getBytes();
         try {
             byte[] encryptedBytes = aesEncCipher.doFinal(messageToBytes);
@@ -119,7 +122,7 @@ public class Dmap2RequestHandler {
         String response = "";
         try {
             byte[] decryptedMessage = aesDecCipher.doFinal(encryptedBytes);
-            response = new String(decryptedMessage, StandardCharsets.UTF_8);
+            response = new String(decryptedMessage);
         } catch (Exception e) {
             System.out.println("whoopsie");
             e.printStackTrace();
@@ -206,8 +209,8 @@ public class Dmap2RequestHandler {
                 responseList.add("from " + message.getFrom() + "\n" +
                         "to " + message.getTo() + "\n" +
                         "subject " + message.getSubject() + "\n" +
-                        "data " + message.getData() +
-                        "hash " + "dlfjasöflLFJLSJDflsdselfie49" + "\n" +
+                        "data " + message.getData() + "\n" +
+                        "hash " + message.getHash() + "\n" +
                         "ok");
                 responseMap.put("show " + i, responseList);
             }
@@ -254,33 +257,40 @@ public class Dmap2RequestHandler {
             byte[] decryptedMessage = rsaCipher.doFinal(requestBytes);
             if (decryptedMessage.length != 86) {
                 System.out.println("blöd"+decryptedMessage.length);
-                String temp = new String(decryptedMessage, StandardCharsets.UTF_8);
+                String temp = new String(decryptedMessage);
+                System.out.println(decode(temp.substring(3,47)).length);
                 System.out.println(temp);
                 System.out.println(temp.length());
             }
             //byte[] decryptedOk = new byte[2];
             //System.arraycopy(decryptedMessage, 0, decryptedOk, 0, 2);
 
-            byte[] decryptedChallenge = new byte[32];
-            System.arraycopy(decryptedMessage, 3, decryptedChallenge, 0, 32);
-            System.out.println(new String(decryptedChallenge, StandardCharsets.UTF_8));
+            String decryptedString = new String(decryptedMessage);
+            byte[] decryptedChallenge = decode(decryptedString.substring(3,47));
+            //System.arraycopy(decryptedMessage, 3, decryptedChallenge, 0, 32);
+            System.out.println(decryptedChallenge.length);
+            System.out.println(new String(decryptedChallenge));
 
-            byte[] decryptedCipher = new byte[32];
-            System.arraycopy(decryptedMessage, 36, decryptedCipher, 0, 32);
-            Key key = new SecretKeySpec(decryptedCipher, 0, 32, "AES");
-            System.out.println(new String(decryptedCipher, StandardCharsets.UTF_8));
+            byte[] decryptedCipher = decode(decryptedString.substring(48,92));
+            //System.arraycopy(decryptedMessage, 36, decryptedCipher, 0, 32);
+            Key key = new SecretKeySpec(decryptedCipher, "AES");
+            System.out.println(decryptedCipher.length);
+            System.out.println(new String(decryptedCipher));
 
-            byte[] decryptedVector = new byte[16];
-            System.arraycopy(decryptedMessage, 69, decryptedVector, 0, 16);
+            byte[] decryptedVector = decode(decryptedString.substring(93));;
+            //System.arraycopy(decryptedMessage, 69, decryptedVector, 0, 16);
             IvParameterSpec iv = new IvParameterSpec(decryptedVector);
-            System.out.println(new String(decryptedVector, StandardCharsets.UTF_8));
+            System.out.println(decryptedVector.length);
+            System.out.println(new String(decryptedVector));
 
 
             this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
             this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
             aesEncCipher.init(Cipher.ENCRYPT_MODE, key, iv);
             aesDecCipher.init(Cipher.DECRYPT_MODE, key, iv);
-            response += new String(decryptedChallenge);
+            System.out.println("Request Handler: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(decryptedVector));
+            response += encode(decryptedChallenge);
+            System.out.println(encode(decryptedChallenge));
             startSecureStep++;
 
         } catch (Exception e) {
