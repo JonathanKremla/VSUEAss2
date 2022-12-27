@@ -9,7 +9,7 @@ import java.rmi.RemoteException;
 public interface INameserverRemote extends Remote {
 
     /**
-     * Registers a mailbox server with the given address for the given domain. For example, when registering a
+     * Registers a name server with the given address for the given domain. For example, when registering a
      * nameserver for the domain 'earth.planet', the new nameserver first calls the root nameserver with the argument
      * 'earth.planet'. The root nameserver locates the nameserver for 'planet' via its child-nameserver references, and
      * invokes this method with the remainder of the domain (i.e., 'earth'). Because 'earth' is then the leaf zone, the
