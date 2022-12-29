@@ -6,13 +6,15 @@ import dslab.util.Config;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.rmi.AlreadyBoundException;
+import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.ArrayList;
 import java.util.MissingResourceException;
 import java.util.Objects;
-import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.concurrent.ConcurrentHashMap;
 
 public class Nameserver implements INameserver, INameserverRemote {
 
@@ -23,8 +25,10 @@ public class Nameserver implements INameserver, INameserverRemote {
   private final String rootId;
   private final InputStream in;
   private final PrintStream out;
+  private String mailDomain;
+  private String mailAddress;
   private Registry registry;
-  private ConcurrentLinkedQueue<INameserverRemote> children = new ConcurrentLinkedQueue<>();
+  private ConcurrentHashMap<String, INameserverRemote> children = new ConcurrentHashMap<>();
 
 
   /**
@@ -60,22 +64,9 @@ public class Nameserver implements INameserver, INameserverRemote {
       } else {
         registerZoneServer(remote);
       }
-    }
-    catch (RemoteException | AlreadyBoundException | AlreadyRegisteredException | InvalidDomainException e) {
+    } catch (RemoteException | AlreadyBoundException | AlreadyRegisteredException | InvalidDomainException | NotBoundException e) {
       e.printStackTrace();
     }
-  }
-
-  private void registerRootServer(INameserverRemote remote) throws RemoteException, AlreadyBoundException {
-    registry = LocateRegistry.createRegistry(Integer.parseInt(this.registryPort));
-    // bind the obtained remote object on specified binding name in the registry
-    registry.bind(rootId, remote);
-
-  }
-
-  private void registerZoneServer(INameserverRemote remote) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-    registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
-    remote.registerNameserver(domain, this);
   }
 
   @Override
@@ -95,17 +86,57 @@ public class Nameserver implements INameserver, INameserverRemote {
 
   @Override
   public void registerNameserver(String domain, INameserverRemote nameserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
-    String[] zones = domain.split(".");
+    String[] zones = domain.split("\\.");
+    if(zones.length == 0) {
+      zones = new String[]{domain};
+    }
     if (zones.length > 1) {
-      registerNameserver(domain.substring(0, domain.length() - zones[zones.length - 1].length() - 1), this);
+      String nextSubDomain = zones[zones.length - 1];
+      String remainingDomain = domain.substring(0, domain.length() - nextSubDomain.length() - 1);
+      children.get(nextSubDomain).registerNameserver(remainingDomain, this);
     } else {
-      this.children.add(nameserver);
+      if (this.children.get(zones[0]) == null) {
+        this.children.put(zones[0], nameserver);
+      } else {
+        throw new AlreadyRegisteredException("Name server managing zone: " + zones[0] + " already exists");
+      }
     }
 
   }
 
+  private void registerRootServer(INameserverRemote remote) throws RemoteException, AlreadyBoundException {
+    registry = LocateRegistry.createRegistry(Integer.parseInt(this.registryPort));
+    registry.bind(rootId, remote);
+  }
+
+  private void registerZoneServer(INameserverRemote remote) throws RemoteException, AlreadyRegisteredException, InvalidDomainException, NotBoundException {
+    registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
+    Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
+    INameserverRemote root = (INameserverRemote) registry.lookup(rootId);
+    root.registerNameserver(domain, remote);
+  }
+
+
   @Override
   public void registerMailboxServer(String domain, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
+    String[] zones = domain.split("\\.");
+    if(!domain.equals("")) {
+      String nextSubDomain = zones.length > 1 ? zones[zones.length - 1] : zones[0];
+      String remainingDomain = zones.length > 1
+              ? domain.substring(0, domain.length() - nextSubDomain.length() - 1)
+              : "";
+      var nextNameserver = children.get(nextSubDomain);
+      if(nextNameserver == null) {
+        throw new InvalidDomainException("Domain: " + domain + " not found");
+      }
+      nextNameserver.registerMailboxServer(remainingDomain, address);
+    } else {
+      if(mailDomain != null || mailAddress != null) {
+        throw new AlreadyRegisteredException("Mailbox server with domain " + domain + " and address: " + address +" already registered");
+      }
+      this.mailAddress = address;
+      this.mailDomain = domain;
+    }
 
   }
 
