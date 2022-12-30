@@ -81,7 +81,7 @@ public class MailboxServer implements IMailboxServer, Runnable {
     try {
       Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
       INameserverRemote remote = (INameserverRemote) registry.lookup(rootId);
-      remote.registerMailboxServer(domain, registryHost);
+      remote.registerMailboxServer(domain, "localhost:" + tcpDmtpPort);
     } catch (RemoteException | NotBoundException | AlreadyRegisteredException | InvalidDomainException e) {
       e.printStackTrace();
     }

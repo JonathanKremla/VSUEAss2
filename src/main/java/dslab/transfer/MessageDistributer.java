@@ -1,5 +1,6 @@
 package dslab.transfer;
 
+import dslab.nameserver.INameserverRemote;
 import dslab.util.Config;
 import dslab.util.datastructures.DataQueue;
 import dslab.util.datastructures.Email;
@@ -14,6 +15,12 @@ import java.net.DatagramPacket;
 import java.net.DatagramSocket;
 import java.net.InetAddress;
 import java.net.Socket;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
+import java.util.Arrays;
+import java.util.List;
 import java.util.MissingResourceException;
 
 /**
@@ -37,9 +44,15 @@ public class MessageDistributer {
   private PrintWriter mailboxOut;
   private BufferedReader mailboxIn;
   private Config transferConfig;
+  private String registryHost;
+  private String registryPort;
+  private String rootId;
 
   public void setTransferConfig(Config transferConfig) {
     this.transferConfig = transferConfig;
+    this.registryHost = transferConfig.getString("registry.host");
+    this.registryPort = transferConfig.getString("registry.port");
+    this.rootId = transferConfig.getString("root_id");
   }
 
   /**
@@ -92,14 +105,16 @@ public class MessageDistributer {
   }
 
   private boolean establishClientConnection(String domain) {
-    int ip;
+    String address = getAddressOfDomain(domain);
+    if(address == null) return false;
+    int port = Integer.parseInt(address.split(":")[1]);
+    String host = address.split(":")[0];
     try {
       if (mailboxSocket != null &&
               mailboxSocket.isConnected() &&
               mailboxSocket.getPort() == Integer.parseInt(domainConfig.getString(domain).split(":")[1])) {
         return true;
       }
-      ip = Integer.parseInt(domainConfig.getString(domain).split(":")[1]);
     } catch (MissingResourceException e) {
       return false;
     }
@@ -111,7 +126,7 @@ public class MessageDistributer {
       if (mailboxIn != null) {
         mailboxIn.close();
       }
-      mailboxSocket = new Socket("localhost", ip);
+      mailboxSocket = new Socket(host, port);
       mailboxOut = new PrintWriter(mailboxSocket.getOutputStream());
       mailboxIn = new BufferedReader(new InputStreamReader(mailboxSocket.getInputStream()));
     } catch (IOException e) {
@@ -119,6 +134,22 @@ public class MessageDistributer {
       return false;
     }
     return true;
+  }
+
+  private String getAddressOfDomain(String domain) {
+    List<String> zones = Arrays.asList(domain.split("\\."));
+    try {
+      Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
+      INameserverRemote remote = (INameserverRemote) registry.lookup(rootId);
+      for(int i = zones.size()-1; i >= 0; i--) {
+        if(remote == null) return null;
+        remote = remote.getNameserver(zones.get(i));
+      }
+      return remote.lookup(zones.get(0));
+    } catch (RemoteException | NotBoundException e) {
+      e.printStackTrace();
+      return null;
+    }
   }
 
   private void sendMail(Email email) {

@@ -11,7 +11,6 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
-import java.util.ArrayList;
 import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -87,7 +86,7 @@ public class Nameserver implements INameserver, INameserverRemote {
   @Override
   public void registerNameserver(String domain, INameserverRemote nameserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
     String[] zones = domain.split("\\.");
-    if(zones.length == 0) {
+    if (zones.length == 0) {
       zones = new String[]{domain};
     }
     if (zones.length > 1) {
@@ -120,34 +119,38 @@ public class Nameserver implements INameserver, INameserverRemote {
   @Override
   public void registerMailboxServer(String domain, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
     String[] zones = domain.split("\\.");
-    if(!domain.equals("")) {
+    if (domain.contains(".")) {
       String nextSubDomain = zones.length > 1 ? zones[zones.length - 1] : zones[0];
       String remainingDomain = zones.length > 1
               ? domain.substring(0, domain.length() - nextSubDomain.length() - 1)
               : "";
       var nextNameserver = children.get(nextSubDomain);
-      if(nextNameserver == null) {
+      if (nextNameserver == null) {
         throw new InvalidDomainException("Domain: " + domain + " not found");
       }
       nextNameserver.registerMailboxServer(remainingDomain, address);
     } else {
-      if(mailDomain != null || mailAddress != null) {
-        throw new AlreadyRegisteredException("Mailbox server with domain " + domain + " and address: " + address +" already registered");
+      if (children.get(domain) != null) {
+        children.get(domain).registerMailboxServer(domain, address);
+      } else {
+        if (mailDomain != null || mailAddress != null) {
+          throw new AlreadyRegisteredException("Mailbox server with domain " + domain + " and address: " + address + " already registered");
+        }
+        this.mailAddress = address;
+        this.mailDomain = domain;
       }
-      this.mailAddress = address;
-      this.mailDomain = domain;
     }
 
   }
 
   @Override
   public INameserverRemote getNameserver(String zone) throws RemoteException {
-    return null;
+    return children.get(zone);
   }
 
   @Override
   public String lookup(String username) throws RemoteException {
-    return null;
+    return Objects.equals(this.mailDomain, username) ? mailAddress : null;
   }
 
   public static void main(String[] args) throws Exception {
