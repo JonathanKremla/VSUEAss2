@@ -14,7 +14,6 @@ public class NameserverShell implements IShell {
   private Nameserver server;
 
   public NameserverShell(Nameserver nameserver, String componentId, InputStream inputStream, PrintStream outputStream) {
-
     shell = new Shell(inputStream, outputStream);
     shell.register(this);
     shell.setPrompt(componentId + "> ");
@@ -43,5 +42,8 @@ public class NameserverShell implements IShell {
     shell.run();
     System.out.println("Exiting the shell, bye!");
 
+  }
+  public void println(String line) {
+    shell.out().println(line);
   }
 }

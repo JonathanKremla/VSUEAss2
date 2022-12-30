@@ -1,6 +1,7 @@
 package dslab.nameserver;
 
 import dslab.ComponentFactory;
+import dslab.shell.NameserverShell;
 import dslab.util.Config;
 
 import java.io.InputStream;
@@ -11,6 +12,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.rmi.server.UnicastRemoteObject;
+import java.util.Collections;
 import java.util.MissingResourceException;
 import java.util.Objects;
 import java.util.concurrent.ConcurrentHashMap;
@@ -24,9 +26,10 @@ public class Nameserver implements INameserver, INameserverRemote {
   private final String rootId;
   private final InputStream in;
   private final PrintStream out;
-  private String mailDomain;
-  private String mailAddress;
+  private ConcurrentHashMap<String, String> mailboxMap = new ConcurrentHashMap<>();
   private Registry registry;
+  private NameserverShell shell;
+  private boolean isRoot;
   private ConcurrentHashMap<String, INameserverRemote> children = new ConcurrentHashMap<>();
 
 
@@ -66,25 +69,46 @@ public class Nameserver implements INameserver, INameserverRemote {
     } catch (RemoteException | AlreadyBoundException | AlreadyRegisteredException | InvalidDomainException | NotBoundException e) {
       e.printStackTrace();
     }
+    try {
+      shell = ComponentFactory.createNameserverShell(this, "shell-ns", in, out);
+      shell.run();
+    } catch (Exception e) {
+      e.printStackTrace();
+      shutdown();
+    }
+    shutdown();
   }
 
   @Override
   public void nameservers() {
-    // TODO
+    var servers = Collections.list(children.keys());
+    Collections.sort(servers);
+    for (String server : servers) {
+      shell.println(server);
+    }
   }
 
   @Override
   public void addresses() {
-    // TODO
+    var addresses = Collections.list(mailboxMap.keys());
+    Collections.sort(addresses);
+    for (String address : addresses) {
+      shell.println(address + " " + mailboxMap.get(address));
+    }
   }
 
   @Override
   public void shutdown() {
-    // TODO
+    try {
+      UnicastRemoteObject.unexportObject(this, true);
+    } catch (RemoteException e) {
+      e.printStackTrace();
+    }
   }
 
   @Override
   public void registerNameserver(String domain, INameserverRemote nameserver) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
+    shell.println("Register Nameserver on domain: " + domain);
     String[] zones = domain.split("\\.");
     if (zones.length == 0) {
       zones = new String[]{domain};
@@ -104,11 +128,13 @@ public class Nameserver implements INameserver, INameserverRemote {
   }
 
   private void registerRootServer(INameserverRemote remote) throws RemoteException, AlreadyBoundException {
+    this.isRoot = true;
     registry = LocateRegistry.createRegistry(Integer.parseInt(this.registryPort));
     registry.bind(rootId, remote);
   }
 
   private void registerZoneServer(INameserverRemote remote) throws RemoteException, AlreadyRegisteredException, InvalidDomainException, NotBoundException {
+    this.isRoot = false;
     registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
     Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
     INameserverRemote root = (INameserverRemote) registry.lookup(rootId);
@@ -118,6 +144,7 @@ public class Nameserver implements INameserver, INameserverRemote {
 
   @Override
   public void registerMailboxServer(String domain, String address) throws RemoteException, AlreadyRegisteredException, InvalidDomainException {
+    shell.println("Register Mailbox Server on domain " + domain + " with address: " + address);
     String[] zones = domain.split("\\.");
     if (domain.contains(".")) {
       String nextSubDomain = zones.length > 1 ? zones[zones.length - 1] : zones[0];
@@ -130,27 +157,23 @@ public class Nameserver implements INameserver, INameserverRemote {
       }
       nextNameserver.registerMailboxServer(remainingDomain, address);
     } else {
-      if (children.get(domain) != null) {
-        children.get(domain).registerMailboxServer(domain, address);
-      } else {
-        if (mailDomain != null || mailAddress != null) {
-          throw new AlreadyRegisteredException("Mailbox server with domain " + domain + " and address: " + address + " already registered");
-        }
-        this.mailAddress = address;
-        this.mailDomain = domain;
+      if (mailboxMap.get(domain) != null) {
+        throw new AlreadyRegisteredException("Mailbox server with domain " + domain + " and address: " + address + " already registered");
       }
+      mailboxMap.put(domain, address);
     }
-
   }
 
   @Override
   public INameserverRemote getNameserver(String zone) throws RemoteException {
+    shell.println("Get Nameserver of zone: " + zone);
     return children.get(zone);
   }
 
   @Override
   public String lookup(String username) throws RemoteException {
-    return Objects.equals(this.mailDomain, username) ? mailAddress : null;
+    shell.println("lookup domain: " + username);
+    return mailboxMap.get(username);
   }
 
   public static void main(String[] args) throws Exception {
