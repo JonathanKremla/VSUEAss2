@@ -72,7 +72,7 @@ public class Dmap2RequestHandler {
      * @return List of responses to be sent to the client
      */
     public List<String> handle(String request) {
-        System.out.println("handle " + request);
+        //System.out.println("handle " + request);
         fillResponseMap();
         if (startSecureStep > 1) {
             request = decrypt(request);
@@ -82,6 +82,7 @@ public class Dmap2RequestHandler {
             var answer = responseMap.get(request);
             handleLogicalRequests(request);
             if (startSecureStep > 1) {
+                //System.out.println("answer:" + answer);
                 answer = encrypt(answer);
             }
             return answer;
@@ -93,27 +94,25 @@ public class Dmap2RequestHandler {
         }
         List<String> invalidRequest = new ArrayList<>();
         invalidRequest.add("error");
+        System.out.println("answer is an error");
         return invalidRequest;
     }
 
     private List<String> encrypt(List<String> answer) {
         List<String> response = new ArrayList<>();
-        StringBuilder answerString = new StringBuilder();
-        for (String s : answer) {
-            answerString.append(s).append("\n");
+        for (String s0 : answer) {
+            for(String s: s0.split("\n")) {
+                byte[] bytes = s.getBytes();
+                try {
+                    byte[] encryptedBytes = aesEncCipher.update(bytes);
+                    response.add(encode(encryptedBytes));
+                } catch (Exception e) {
+                    System.out.println("whoopsie");
+                    e.printStackTrace();
+                }
+            }
         }
-        if (answerString.charAt(answerString.length() - 1) == '\n') {
-            answerString.deleteCharAt(answerString.length() - 1);
-        }
-        System.out.println(answerString);
-        byte[] messageToBytes = answerString.toString().getBytes();
-        try {
-            byte[] encryptedBytes = aesEncCipher.doFinal(messageToBytes);
-            response.add(encode(encryptedBytes));
-        } catch (Exception e) {
-            System.out.println("whoopsie");
-            e.printStackTrace();
-        }
+        //System.out.println(answerString);
         return response;
     }
 
@@ -121,8 +120,12 @@ public class Dmap2RequestHandler {
         byte[] encryptedBytes = decode(encryptedMessage);
         String response = "";
         try {
-            byte[] decryptedMessage = aesDecCipher.doFinal(encryptedBytes);
+            byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
             response = new String(decryptedMessage);
+            if(response.endsWith("\n")){
+                response = response.substring(0,response.length()-1);
+                //System.out.println("removed n");
+            }
         } catch (Exception e) {
             System.out.println("whoopsie");
             e.printStackTrace();
@@ -248,19 +251,19 @@ public class Dmap2RequestHandler {
     }
 
     private List<String> startSecure(String request) {
-        System.out.println("hallo startSecure undso");
+        //System.out.println("hallo startSecure undso");
         List<String> responseList = new ArrayList<>();
         String response = "ok ";
         try {
             byte[] requestBytes = decode(request);
-            System.out.println(requestBytes.length + " " + request.length());
+            //System.out.println(requestBytes.length + " " + request.length());
             byte[] decryptedMessage = rsaCipher.doFinal(requestBytes);
             if (decryptedMessage.length != 86) {
-                System.out.println("blöd"+decryptedMessage.length);
+                //System.out.println("blöd"+decryptedMessage.length);
                 String temp = new String(decryptedMessage);
-                System.out.println(decode(temp.substring(3,47)).length);
-                System.out.println(temp);
-                System.out.println(temp.length());
+                //System.out.println(decode(temp.substring(3,47)).length);
+                //System.out.println(temp);
+                //System.out.println(temp.length());
             }
             //byte[] decryptedOk = new byte[2];
             //System.arraycopy(decryptedMessage, 0, decryptedOk, 0, 2);
@@ -268,29 +271,29 @@ public class Dmap2RequestHandler {
             String decryptedString = new String(decryptedMessage);
             byte[] decryptedChallenge = decode(decryptedString.substring(3,47));
             //System.arraycopy(decryptedMessage, 3, decryptedChallenge, 0, 32);
-            System.out.println(decryptedChallenge.length);
-            System.out.println(new String(decryptedChallenge));
+            //System.out.println(decryptedChallenge.length);
+            //System.out.println(new String(decryptedChallenge));
 
             byte[] decryptedCipher = decode(decryptedString.substring(48,92));
             //System.arraycopy(decryptedMessage, 36, decryptedCipher, 0, 32);
             Key key = new SecretKeySpec(decryptedCipher, "AES");
-            System.out.println(decryptedCipher.length);
-            System.out.println(new String(decryptedCipher));
+            //System.out.println(decryptedCipher.length);
+            //System.out.println(new String(decryptedCipher));
 
             byte[] decryptedVector = decode(decryptedString.substring(93));;
             //System.arraycopy(decryptedMessage, 69, decryptedVector, 0, 16);
             IvParameterSpec iv = new IvParameterSpec(decryptedVector);
-            System.out.println(decryptedVector.length);
-            System.out.println(new String(decryptedVector));
+            //System.out.println(decryptedVector.length);
+            //System.out.println(new String(decryptedVector));
 
 
             this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
             this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
             aesEncCipher.init(Cipher.ENCRYPT_MODE, key, iv);
             aesDecCipher.init(Cipher.DECRYPT_MODE, key, iv);
-            System.out.println("Request Handler: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(decryptedVector));
+            //System.out.println("Request Handler: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(decryptedVector));
             response += encode(decryptedChallenge);
-            System.out.println(encode(decryptedChallenge));
+            //System.out.println(encode(decryptedChallenge));
             startSecureStep++;
 
         } catch (Exception e) {

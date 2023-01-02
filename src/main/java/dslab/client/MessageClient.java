@@ -108,6 +108,7 @@ public class MessageClient implements IMessageClient, Runnable {
         if(message.startsWith("error")){
             return message;
         }
+        //System.out.println("received message: "+decrypt(message));
         return decrypt(message);
     }
 
@@ -154,7 +155,7 @@ public class MessageClient implements IMessageClient, Runnable {
         this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
         aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
         aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-            System.out.println("Message Client: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(iv));
+            //System.out.println("Message Client: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(iv));
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -165,7 +166,7 @@ public class MessageClient implements IMessageClient, Runnable {
             throw new RuntimeException(e);
         }
         String message = "ok "+challengeString +" "+ aesCipher +" "+ ivString;
-        System.out.println(challengeString.length()+" "+aesCipher.length()+" "+ivString.length());
+        //System.out.println(challengeString.length()+" "+aesCipher.length()+" "+ivString.length());
         String encryptedMessage="";
         try {
             encryptedMessage = encryptRsa(message, rsaCipher);
@@ -178,7 +179,7 @@ public class MessageClient implements IMessageClient, Runnable {
 
         response = decrypt(mailboxBufferedReader.readLine());
         //System.out.println(encode(decode(response)));
-        System.out.println("ok "+challengeString);
+        //System.out.println("ok "+challengeString);
         if(!response.equals("ok "+challengeString)){
             int i=0;
             String test = "ok "+challengeString;
@@ -206,7 +207,7 @@ public class MessageClient implements IMessageClient, Runnable {
 
         byte[] messageToBytes = s.getBytes();
         try {
-            byte[] encryptedBytes = aesEncCipher.doFinal(messageToBytes);
+            byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
             return encode(encryptedBytes);
         } catch (Exception e) {
             System.out.println("whoopsie");
@@ -216,11 +217,11 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     public String decrypt(String encryptedMessage) {
-        System.out.println("encryptedMessage "+encryptedMessage);
+        //System.out.println("encryptedMessage "+encryptedMessage);
         byte[] encryptedBytes = decode(encryptedMessage);
         String response = "";
         try {
-            byte[] decryptedMessage = aesDecCipher.doFinal(encryptedBytes);
+            byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
             response = new String(decryptedMessage);
         } catch (Exception e) {
             System.out.println("whoopsie");
@@ -234,7 +235,7 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     private byte[] decode(String data) {
-        System.out.println("decode "+data);
+        //System.out.println("decode "+data);
         return Base64.getDecoder().decode(data);
     }
 
@@ -268,68 +269,77 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void inbox() {
         try {
-            mailboxServerBufferedWriter.write("list\n");
-            mailboxServerBufferedWriter.flush();
+            writeToServer("list\n");
+            //mailboxServerBufferedWriter.flush();
             System.out.println("Waiting on response after list command...");
 
             String totalString = "";
-            String readString = mailboxBufferedReader.readLine() + "\n";
-            boolean emptyInbox = readString.equals("ok\n");
+
+            String readString = readLineFromServer() + "\n";
+            boolean emptyInbox = readString.equals("ok");
 
             while ( ! readString.equals("ok\n")) {
                 totalString += readString;
-                readString = mailboxBufferedReader.readLine() + "\n";
+                readString = readLineFromServer() + "\n";
                 System.out.printf("totalString:%n%s%n", totalString);
             }
+            /*if(totalString.endsWith("ok")){
+                System.out.println("hallo");
+                totalString=totalString.substring(0,totalString.length()-2);
+            }*/
 
             if (emptyInbox) {
                 shell.out().println("Your inbox is empty.");
             } else {
                 System.out.println("AAA");
 
+                System.out.println("totalstring: "+totalString);
                 List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
 
                 System.out.println("BBB");
 
                 for (String message : allMessagesInDetailFormat) {
+                    System.out.println("print: "+message);
                     shell.out().println(message);
                 }
             }
         } catch (IOException e) {
+            System.out.println("hallo");
             e.printStackTrace();
         }
     }
 
 
     private List<String> getAllMessagesInDetailFormat(String listResponse) {
+        System.out.println("blub"+listResponse);
         String[] allMessages = listResponse.split("\n");
 
         List<String> allMessagesInDetailFormat = new ArrayList<>();
 
         for (String message : allMessages) {
+            System.out.println("message: "+message);
             // todo: rn I am assuming no invalid message formats would ever be stored
             String id = message.split(" ")[0];
 
             try {
-                mailboxServerBufferedWriter.write("show " + id + "\n");
-                mailboxServerBufferedWriter.flush();
+                writeToServer("show " + id + "\n");
+                //mailboxServerBufferedWriter.flush();
 
                 String totalString = "\nMESSAGE WITH ID " + id + ": \n";
 
-                String from = mailboxBufferedReader.readLine();
+                String from = readLineFromServer();
                 totalString += from + '\n';
-                String to = mailboxBufferedReader.readLine();
+                String to = readLineFromServer();
                 totalString += to + '\n';
-                String subject = mailboxBufferedReader.readLine();
+                String subject = readLineFromServer();
                 totalString += subject + '\n';
-                String data = mailboxBufferedReader.readLine();
+                String data = readLineFromServer();
                 totalString += data + '\n';
-
-                String hash = mailboxBufferedReader.readLine();
+                String hash = readLineFromServer();
                 System.out.println("THE FOLLOWING SHOULD BE \"a hash\": " + hash);
 
                 // just read the "ok" at the end of show, but don't treat it
-                String ok = mailboxBufferedReader.readLine();
+                String ok = readLineFromServer();
                 System.out.println("THE FOLLOWING SHOULD BE \"ok\": " + ok);
 
                 allMessagesInDetailFormat.add(totalString);
@@ -352,9 +362,9 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void delete(String id) {
         try {
-            mailboxServerBufferedWriter.write("delete " + id + "\n");
-            mailboxServerBufferedWriter.flush();
-            String serverResponse = mailboxBufferedReader.readLine();
+            writeToServer("delete " + id + "\n");
+            //mailboxServerBufferedWriter.flush();
+            String serverResponse = readLineFromServer();
 
             if (serverResponse.startsWith("error")) {
                 shell.out().println(serverResponse);
@@ -378,19 +388,19 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void verify(String id) {
         try {
-            mailboxServerBufferedWriter.write("show " + id + "\n");
-            mailboxServerBufferedWriter.flush();
+            writeToServer("show " + id + "\n");
+            //mailboxServerBufferedWriter.flush();
 
 
             String totalString = "";
-            String readString = mailboxBufferedReader.readLine() + "\n";
+            String readString = readLineFromServer() + "\n";
             while ( ! readString.equals("ok\n")) {
                 if (readString.startsWith("error")) {
                     shell.out().println("error - message integrity could not be verified because the message could not be found");
                     return;
                 }
                 totalString += readString;
-                readString = mailboxBufferedReader.readLine() + "\n";
+                readString = readLineFromServer() + "\n";
                 System.out.printf("totalString:%n%s%n", totalString);
             }
 
