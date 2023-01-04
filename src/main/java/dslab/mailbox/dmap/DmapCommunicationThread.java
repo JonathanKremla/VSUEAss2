@@ -26,7 +26,7 @@ public class DmapCommunicationThread implements Runnable {
   }
 
   public void run() {
-    Dmap2RequestHandler dmapRequestHandler = new Dmap2RequestHandler(users, componentId);
+    DmapRequestHandler dmapRequestHandler = new DmapRequestHandler(users, componentId);
     String request;
     communicator.println("ok DMAP2.0");
     communicator.flush();
@@ -34,7 +34,11 @@ public class DmapCommunicationThread implements Runnable {
     while ((request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
       List<String> responses = dmapRequestHandler.handle(request);
       for (String response : responses) {
-        communicator.println(response);
+        if(!response.equals("startsecure finished")) {
+          communicator.println(response);
+        }else{
+          System.out.println("STARTSECURE FINISHED");
+        }
       }
       communicator.flush();
     }

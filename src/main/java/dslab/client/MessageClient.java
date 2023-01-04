@@ -1,23 +1,5 @@
 package dslab.client;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.net.Socket;
-import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.security.*;
-import java.security.spec.PKCS8EncodedKeySpec;
-import java.security.spec.RSAPublicKeySpec;
-import java.util.*;
-
 import at.ac.tuwien.dsg.orvell.Shell;
 import at.ac.tuwien.dsg.orvell.annotation.Command;
 import dslab.ComponentFactory;
@@ -26,6 +8,13 @@ import dslab.util.Keys;
 
 import javax.crypto.*;
 import javax.crypto.spec.IvParameterSpec;
+import java.io.*;
+import java.net.Socket;
+import java.security.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.MissingResourceException;
 
 import static dslab.util.Util.getDomainName;
 import static dslab.util.Util.getWholeSocketAddress;
@@ -47,9 +36,9 @@ public class MessageClient implements IMessageClient, Runnable {
      * Creates a new client instance.
      *
      * @param componentId the id of the component that corresponds to the Config resource
-     * @param config the component config
-     * @param in the input stream to read console input from
-     * @param out the output stream to write console output to
+     * @param config      the component config
+     * @param in          the input stream to read console input from
+     * @param out         the output stream to write console output to
      */
     public MessageClient(String componentId, Config config, InputStream in, PrintStream out) {
         this.componentId = componentId;
@@ -74,22 +63,13 @@ public class MessageClient implements IMessageClient, Runnable {
             System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
             startSecure();
-            // todo: here the code for "startsecure" will be inserted
 
             writeToServer("login "
                     + config.getString("mailbox.user")
                     + " "
                     + config.getString("mailbox.password"));
-            /*mailboxServerBufferedWriter.write(
-                    "login "
-                    + config.getString("mailbox.user")
-                    + " "
-                    + config.getString("mailbox.password")
-                    + "\n"
-            );
-            mailboxServerBufferedWriter.flush();*/
 
-            line =  readLineFromServer();//mailboxBufferedReader.readLine();
+            line = readLineFromServer();//mailboxBufferedReader.readLine();
             System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + line);
 
             shell.run();
@@ -99,16 +79,15 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     private void writeToServer(String message) throws IOException {
-        mailboxServerBufferedWriter.write(encrypt(message)+"\n");
+        mailboxServerBufferedWriter.write(encrypt(message) + "\n");
         mailboxServerBufferedWriter.flush();
     }
 
     private String readLineFromServer() throws IOException {
         String message = mailboxBufferedReader.readLine();
-        if(message.startsWith("error")){
+        if (message.startsWith("error")) {
             return message;
         }
-        //System.out.println("received message: "+decrypt(message));
         return decrypt(message);
     }
 
@@ -117,7 +96,7 @@ public class MessageClient implements IMessageClient, Runnable {
         mailboxServerBufferedWriter.flush();
 
         String response = mailboxBufferedReader.readLine();
-        if(!response.startsWith("ok ")||response.length()<4){
+        if (!response.startsWith("ok ") || response.length() < 4) {
             System.out.println(response);
             System.out.println("wrong format");
         }
@@ -152,10 +131,9 @@ public class MessageClient implements IMessageClient, Runnable {
         try {
             this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
 
-        this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
-        aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-        aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-            //System.out.println("Message Client: "+ Arrays.toString(key.getEncoded()) +" "+ Arrays.toString(iv));
+            this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
+            aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
         } catch (NoSuchAlgorithmException e) {
             throw new RuntimeException(e);
         } catch (NoSuchPaddingException e) {
@@ -165,36 +143,34 @@ public class MessageClient implements IMessageClient, Runnable {
         } catch (InvalidKeyException e) {
             throw new RuntimeException(e);
         }
-        String message = "ok "+challengeString +" "+ aesCipher +" "+ ivString;
-        //System.out.println(challengeString.length()+" "+aesCipher.length()+" "+ivString.length());
-        String encryptedMessage="";
+        String message = "ok " + challengeString + " " + aesCipher + " " + ivString;
+        String encryptedMessage = "";
         try {
             encryptedMessage = encryptRsa(message, rsaCipher);
-        }catch (Exception e){
+        } catch (Exception e) {
             System.out.println("hallo");
         }
 
-        mailboxServerBufferedWriter.write(encryptedMessage+"\n");
+        mailboxServerBufferedWriter.write(encryptedMessage + "\n");
         mailboxServerBufferedWriter.flush();
 
         response = decrypt(mailboxBufferedReader.readLine());
-        //System.out.println(encode(decode(response)));
-        //System.out.println("ok "+challengeString);
-        if(!response.equals("ok "+challengeString)){
-            int i=0;
-            String test = "ok "+challengeString;
-            for (char c:response.toCharArray()) {
-                if(c!=test.charAt(i)){
-                    System.out.println(i+" "+(int)c+c+" "+(int)test.charAt(i)+test.charAt(i));
+
+        if (!response.equals("ok " + challengeString)) {
+            //TODO
+            int i = 0;
+            String test = "ok " + challengeString;
+            for (char c : response.toCharArray()) {
+                if (c != test.charAt(i)) {
+                    System.out.println(i + " " + (int) c + c + " " + (int) test.charAt(i) + test.charAt(i));
                 }
                 i++;
             }
             System.out.println("oh no");
-        }else{
-            mailboxServerBufferedWriter.write(encrypt("ok")+"\n");
+        } else {
+            mailboxServerBufferedWriter.write(encrypt("ok") + "\n");
             mailboxServerBufferedWriter.flush();
         }
-        System.out.println("end of startsecure: "+readLineFromServer());
     }
 
     private String encryptRsa(String message, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException {
@@ -217,7 +193,6 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     public String decrypt(String encryptedMessage) {
-        //System.out.println("encryptedMessage "+encryptedMessage);
         byte[] encryptedBytes = decode(encryptedMessage);
         String response = "";
         try {
@@ -235,7 +210,6 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     private byte[] decode(String data) {
-        //System.out.println("decode "+data);
         return Base64.getDecoder().decode(data);
     }
 
@@ -244,19 +218,11 @@ public class MessageClient implements IMessageClient, Runnable {
             Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
             String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
 
-            //SecretKeySpec keySpec = Keys.readSecretKey(new File(publicKeyFileName));
-            Path path = Paths.get(publicKeyFileName);
-            //byte[] pubKeyByteArray = Files.readAllBytes(path);
-
-            //RSAPublicKeySpec keySpec = new PKCS8EncodedKeySpec(pubKeyByteArray);
-
-            KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-
             PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
 
             rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
             return rsaCipher;
-        }catch (Exception e){
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return null;
@@ -270,36 +236,30 @@ public class MessageClient implements IMessageClient, Runnable {
     public void inbox() {
         try {
             writeToServer("list\n");
-            //mailboxServerBufferedWriter.flush();
             System.out.println("Waiting on response after list command...");
 
             String totalString = "";
 
             String readString = readLineFromServer() + "\n";
-            boolean emptyInbox = readString.equals("ok");
+            boolean emptyInbox = readString.equals("ok\n");
 
-            while ( ! readString.equals("ok\n")) {
+            while (!readString.equals("ok\n")) {
                 totalString += readString;
                 readString = readLineFromServer() + "\n";
                 System.out.printf("totalString:%n%s%n", totalString);
             }
-            /*if(totalString.endsWith("ok")){
-                System.out.println("hallo");
-                totalString=totalString.substring(0,totalString.length()-2);
-            }*/
 
             if (emptyInbox) {
                 shell.out().println("Your inbox is empty.");
             } else {
                 System.out.println("AAA");
 
-                System.out.println("totalstring: "+totalString);
+                System.out.println("totalstring: " + totalString);
                 List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
 
                 System.out.println("BBB");
 
                 for (String message : allMessagesInDetailFormat) {
-                    System.out.println("print: "+message);
                     shell.out().println(message);
                 }
             }
@@ -311,19 +271,16 @@ public class MessageClient implements IMessageClient, Runnable {
 
 
     private List<String> getAllMessagesInDetailFormat(String listResponse) {
-        System.out.println("blub"+listResponse);
         String[] allMessages = listResponse.split("\n");
 
         List<String> allMessagesInDetailFormat = new ArrayList<>();
 
         for (String message : allMessages) {
-            System.out.println("message: "+message);
             // todo: rn I am assuming no invalid message formats would ever be stored
             String id = message.split(" ")[0];
 
             try {
                 writeToServer("show " + id + "\n");
-                //mailboxServerBufferedWriter.flush();
 
                 String totalString = "\nMESSAGE WITH ID " + id + ": \n";
 
@@ -363,7 +320,6 @@ public class MessageClient implements IMessageClient, Runnable {
     public void delete(String id) {
         try {
             writeToServer("delete " + id + "\n");
-            //mailboxServerBufferedWriter.flush();
             String serverResponse = readLineFromServer();
 
             if (serverResponse.startsWith("error")) {
@@ -389,12 +345,10 @@ public class MessageClient implements IMessageClient, Runnable {
     public void verify(String id) {
         try {
             writeToServer("show " + id + "\n");
-            //mailboxServerBufferedWriter.flush();
-
 
             String totalString = "";
             String readString = readLineFromServer() + "\n";
-            while ( ! readString.equals("ok\n")) {
+            while (!readString.equals("ok\n")) {
                 if (readString.startsWith("error")) {
                     shell.out().println("error - message integrity could not be verified because the message could not be found");
                     return;
@@ -474,7 +428,7 @@ public class MessageClient implements IMessageClient, Runnable {
                     .append("\n");
         }
         // NOTE: substring to exclude the last '\n'
-        return finalString.toString().substring(0,finalString.length()-1);
+        return finalString.toString().substring(0, finalString.length() - 1);
     }
 
     private byte[] computeHash(String messageText) throws IOException, NoSuchAlgorithmException, InvalidKeyException {
@@ -490,9 +444,9 @@ public class MessageClient implements IMessageClient, Runnable {
     /**
      * Sends a message from the mail client's user to the given recipient(s)
      *
-     * @param to comma separated list of recipients
+     * @param to      comma separated list of recipients
      * @param subject the message subject
-     * @param data the message data
+     * @param data    the message data
      */
     @Override
     @Command
@@ -529,7 +483,7 @@ public class MessageClient implements IMessageClient, Runnable {
                 }
 
                 String[] portDomain = targetAddress.split(":");
-                assert(portDomain.length == 2);
+                assert (portDomain.length == 2);
 
                 String response = "no response received yet";
                 try {
@@ -594,6 +548,7 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     @Command
     public void shutdown() {
+        //TODO
 //                    bufferedWriter.write("quit\n");
 //                    bufferedWriter.flush();
 //                    line = bufferedReader.readLine();
