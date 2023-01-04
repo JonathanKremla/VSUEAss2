@@ -5,12 +5,15 @@ import dslab.util.Config;
 import dslab.util.Keys;
 import dslab.util.datastructures.Email;
 
+import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
+import javax.crypto.IllegalBlockSizeException;
+import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.File;
-import java.security.Key;
-import java.security.PrivateKey;
+import java.io.IOException;
+import java.security.*;
 import java.util.ArrayList;
 import java.util.Base64;
 import java.util.HashMap;
@@ -28,27 +31,15 @@ public class DmapRequestHandler {
 
     private final String componentId;
     private int startSecureStep;
-    private Cipher rsaCipher;
 
     private Cipher aesEncCipher;
     private Cipher aesDecCipher;
+    private final List<String> startSecureError = List.of("error during startsecure");
 
     public DmapRequestHandler(String userConfig, String componentId) {
         this.config = new Config(userConfig);
         this.componentId = componentId;
         this.startSecureStep = 0;
-        try {
-            this.rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            String privateKeyFileName = "keys/server/" + componentId + ".der";
-
-            PrivateKey myPrivKey = Keys.readPrivateKey(new File(privateKeyFileName));
-
-            this.rsaCipher.init(Cipher.PRIVATE_KEY, myPrivKey);
-        } catch (Exception e) {
-            System.out.println("ALARM");
-            System.out.println(e.getMessage());
-            System.out.println(e.getClass());
-        }
 
         fillResponseMap();
     }
@@ -74,12 +65,19 @@ public class DmapRequestHandler {
             return answer;
         }
         if (startSecureStep == 1) {
-            List<String> temp = encrypt(startSecure(request));
-            return temp;
+            List<String> response = startSecure(request);
+            if(response.equals(startSecureError)){
+                return response;
+            }
+            return encrypt(response);
         }
-        if (startSecureStep == 2 && request.equals("ok")) {
-            startSecureStep++;
-            return List.of("startsecure finished");
+        if (startSecureStep == 2) {
+            if (request.equals("ok")) {
+                startSecureStep++;
+                return List.of("startsecure finished");
+            } else {
+                return startSecureError;
+            }
         }
         List<String> invalidRequest = new ArrayList<>();
         invalidRequest.add("error");
@@ -91,13 +89,8 @@ public class DmapRequestHandler {
         for (String s0 : answer) {
             for (String s : s0.split("\n")) {
                 byte[] bytes = s.getBytes();
-                try {
-                    byte[] encryptedBytes = aesEncCipher.update(bytes);
-                    response.add(encode(encryptedBytes));
-                } catch (Exception e) {
-                    System.out.println("whoopsie");
-                    e.printStackTrace();
-                }
+                byte[] encryptedBytes = aesEncCipher.update(bytes);
+                response.add(encode(encryptedBytes));
             }
         }
         return response;
@@ -105,16 +98,10 @@ public class DmapRequestHandler {
 
     public String decrypt(String encryptedMessage) {
         byte[] encryptedBytes = decode(encryptedMessage);
-        String response = "";
-        try {
-            byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
-            response = new String(decryptedMessage);
-            if (response.endsWith("\n")) {
-                response = response.substring(0, response.length() - 1);
-            }
-        } catch (Exception e) {
-            System.out.println("whoopsie");
-            e.printStackTrace();
+        byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
+        String response = new String(decryptedMessage);
+        if (response.endsWith("\n")) {
+            response = response.substring(0, response.length() - 1);
         }
         return response;
     }
@@ -161,11 +148,11 @@ public class DmapRequestHandler {
     }
 
     private void startSecureResponse() {
-        List<String> responseList = new ArrayList<>();
         if (startSecureStep == 0) {
+            List<String> responseList = new ArrayList<>();
             responseList.add("ok " + componentId);
+            responseMap.put("startsecure", responseList);
         }
-        responseMap.put("startsecure", responseList);
     }
 
     private void loginResponse() {
@@ -237,6 +224,18 @@ public class DmapRequestHandler {
     }
 
     private List<String> startSecure(String request) {
+        Cipher rsaCipher;
+        try {
+            rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+            String privateKeyFileName = "keys/server/" + componentId + ".der";
+
+            PrivateKey myPrivKey = Keys.readPrivateKey(new File(privateKeyFileName));
+
+            rsaCipher.init(Cipher.PRIVATE_KEY, myPrivKey);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | IOException | InvalidKeyException e) {
+            return startSecureError;
+        }
+
         List<String> responseList = new ArrayList<>();
         String response = "ok ";
         try {
@@ -260,10 +259,9 @@ public class DmapRequestHandler {
             response += encode(decryptedChallenge);
             startSecureStep++;
 
-        } catch (Exception e) {
-            System.out.println("ALARM");
-            System.out.println(e.getMessage());
-            e.printStackTrace();
+        } catch (InvalidAlgorithmParameterException | IllegalBlockSizeException | NoSuchPaddingException |
+                 BadPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+            return startSecureError;
         }
         responseList.add(response);
         return responseList;

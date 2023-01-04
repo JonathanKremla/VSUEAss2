@@ -1,6 +1,7 @@
 package dslab.client;
 
 import at.ac.tuwien.dsg.orvell.Shell;
+import at.ac.tuwien.dsg.orvell.StopShellException;
 import at.ac.tuwien.dsg.orvell.annotation.Command;
 import dslab.ComponentFactory;
 import dslab.util.Config;
@@ -31,6 +32,7 @@ public class MessageClient implements IMessageClient, Runnable {
     private BufferedWriter mailboxServerBufferedWriter;
     private Cipher aesEncCipher;
     private Cipher aesDecCipher;
+    private boolean startSecureError = false;
 
     /**
      * Creates a new client instance.
@@ -63,6 +65,10 @@ public class MessageClient implements IMessageClient, Runnable {
             System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
             startSecure();
+            if (startSecureError) {
+                clientSocket.close();
+                return;
+            }
 
             writeToServer("login "
                     + config.getString("mailbox.user")
@@ -85,6 +91,9 @@ public class MessageClient implements IMessageClient, Runnable {
 
     private String readLineFromServer() throws IOException {
         String message = mailboxBufferedReader.readLine();
+        if (message == null){
+            throw new IOException("error server terminated connection");
+        }
         if (message.startsWith("error")) {
             return message;
         }
@@ -101,23 +110,29 @@ public class MessageClient implements IMessageClient, Runnable {
             System.out.println("wrong format");
         }
         String componentId = response.substring(3);
-        Cipher rsaCipher = getPublicKey(componentId);
+        Cipher rsaCipher = null;
+        try {
+            rsaCipher = getPublicKey(componentId);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+            startSecureShutdown();
+        }
 
         SecureRandom random = null;
         try {
             random = SecureRandom.getInstanceStrong();
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            startSecureShutdown();
         }
         byte[] challenge = new byte[32];
         random.nextBytes(challenge);
+
         String challengeString = encode(challenge);
 
         KeyGenerator keyGenerator = null;
         try {
             keyGenerator = KeyGenerator.getInstance("AES");
         } catch (NoSuchAlgorithmException e) {
-            e.printStackTrace();
+            startSecureShutdown();
         }
         keyGenerator.init(256);
         Key key = keyGenerator.generateKey();
@@ -134,39 +149,24 @@ public class MessageClient implements IMessageClient, Runnable {
             this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
             aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
             aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-        } catch (NoSuchAlgorithmException e) {
-            throw new RuntimeException(e);
-        } catch (NoSuchPaddingException e) {
-            throw new RuntimeException(e);
-        } catch (InvalidAlgorithmParameterException e) {
-            throw new RuntimeException(e);
-        } catch (InvalidKeyException e) {
-            throw new RuntimeException(e);
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            startSecureShutdown();
         }
         String message = "ok " + challengeString + " " + aesCipher + " " + ivString;
         String encryptedMessage = "";
         try {
             encryptedMessage = encryptRsa(message, rsaCipher);
-        } catch (Exception e) {
-            System.out.println("hallo");
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            startSecureShutdown();
         }
-
         mailboxServerBufferedWriter.write(encryptedMessage + "\n");
         mailboxServerBufferedWriter.flush();
 
-        response = decrypt(mailboxBufferedReader.readLine());
+        response = readLineFromServer();
 
         if (!response.equals("ok " + challengeString)) {
-            //TODO
-            int i = 0;
-            String test = "ok " + challengeString;
-            for (char c : response.toCharArray()) {
-                if (c != test.charAt(i)) {
-                    System.out.println(i + " " + (int) c + c + " " + (int) test.charAt(i) + test.charAt(i));
-                }
-                i++;
-            }
-            System.out.println("oh no");
+            startSecureShutdown();
         } else {
             mailboxServerBufferedWriter.write(encrypt("ok") + "\n");
             mailboxServerBufferedWriter.flush();
@@ -180,29 +180,15 @@ public class MessageClient implements IMessageClient, Runnable {
     }
 
     private String encrypt(String s) {
-
         byte[] messageToBytes = s.getBytes();
-        try {
-            byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
-            return encode(encryptedBytes);
-        } catch (Exception e) {
-            System.out.println("whoopsie");
-            e.printStackTrace();
-        }
-        return "";
+        byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
+        return encode(encryptedBytes);
     }
 
     public String decrypt(String encryptedMessage) {
         byte[] encryptedBytes = decode(encryptedMessage);
-        String response = "";
-        try {
-            byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
-            response = new String(decryptedMessage);
-        } catch (Exception e) {
-            System.out.println("whoopsie");
-            e.printStackTrace();
-        }
-        return response;
+        byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
+        return new String(decryptedMessage);
     }
 
     private String encode(byte[] data) {
@@ -213,19 +199,14 @@ public class MessageClient implements IMessageClient, Runnable {
         return Base64.getDecoder().decode(data);
     }
 
-    private Cipher getPublicKey(String componentId) {
-        try {
-            Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-            String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
+    private Cipher getPublicKey(String componentId) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidKeyException {
+        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
 
-            PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
+        PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
 
-            rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
-            return rsaCipher;
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-        return null;
+        rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
+        return rsaCipher;
     }
 
     /**
@@ -264,7 +245,6 @@ public class MessageClient implements IMessageClient, Runnable {
                 }
             }
         } catch (IOException e) {
-            System.out.println("hallo");
             e.printStackTrace();
         }
     }
@@ -545,15 +525,23 @@ public class MessageClient implements IMessageClient, Runnable {
         }
     }
 
+    private void startSecureShutdown() {
+        System.err.println("Error during startSecure, terminating connection");
+        startSecureError = true;
+    }
+
     @Override
     @Command
     public void shutdown() {
-        //TODO
-//                    bufferedWriter.write("quit\n");
-//                    bufferedWriter.flush();
-//                    line = bufferedReader.readLine();
-//                    System.out.println("CLIENT READS LINE: " + line);
-
+        try {
+            mailboxServerBufferedWriter.write("quit\n");
+            mailboxServerBufferedWriter.flush();
+            String line = mailboxBufferedReader.readLine();
+            System.out.println("CLIENT READS LINE: " + line);
+        } catch (IOException e) {
+            System.err.println("error during shutdown");
+        }
+        throw new StopShellException();
 
     }
 

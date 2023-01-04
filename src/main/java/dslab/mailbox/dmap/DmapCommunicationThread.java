@@ -18,6 +18,7 @@ public class DmapCommunicationThread implements Runnable {
   private ClientCommunicator communicator;
   private String users;
   private final String componentId;
+  private boolean startSecureError=false;
 
   public DmapCommunicationThread(ClientCommunicator communicator, String users, String componentId) {
     this.communicator = communicator;
@@ -31,9 +32,14 @@ public class DmapCommunicationThread implements Runnable {
     communicator.println("ok DMAP2.0");
     communicator.flush();
     // read client requests
-    while ((request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
+    while (!startSecureError && (request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
       List<String> responses = dmapRequestHandler.handle(request);
       for (String response : responses) {
+        if(response.equals("error during startsecure")){
+          System.err.println("Error during startSecure, terminating connection");
+          startSecureError=true;
+          continue;
+        }
         if(!response.equals("startsecure finished")) {
           communicator.println(response);
         }else{
@@ -42,8 +48,10 @@ public class DmapCommunicationThread implements Runnable {
       }
       communicator.flush();
     }
-    communicator.println("ok bye");
-    communicator.flush();
+    if(!startSecureError) {
+      communicator.println("ok bye");
+      communicator.flush();
+    }
     communicator.close();
   }
 }
