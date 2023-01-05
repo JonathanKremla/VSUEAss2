@@ -15,43 +15,41 @@ import java.util.Objects;
  */
 public class DmapCommunicationThread implements Runnable {
 
-  private ClientCommunicator communicator;
-  private String users;
-  private final String componentId;
-  private boolean startSecureError=false;
+    private ClientCommunicator communicator;
+    private String users;
+    private final String componentId;
+    private boolean startSecureError = false;
 
-  public DmapCommunicationThread(ClientCommunicator communicator, String users, String componentId) {
-    this.communicator = communicator;
-    this.users = users;
-    this.componentId = componentId;
-  }
+    public DmapCommunicationThread(ClientCommunicator communicator, String users, String componentId) {
+        this.communicator = communicator;
+        this.users = users;
+        this.componentId = componentId;
+    }
 
-  public void run() {
-    DmapRequestHandler dmapRequestHandler = new DmapRequestHandler(users, componentId);
-    String request;
-    communicator.println("ok DMAP2.0");
-    communicator.flush();
-    // read client requests
-    while (!startSecureError && (request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
-      List<String> responses = dmapRequestHandler.handle(request);
-      for (String response : responses) {
-        if(response.equals("error during startsecure")){
-          System.err.println("Error during startSecure, terminating connection");
-          startSecureError=true;
-          continue;
+    public void run() {
+        DmapRequestHandler dmapRequestHandler = new DmapRequestHandler(users, componentId);
+        String request;
+        communicator.println("ok DMAP2.0");
+        communicator.flush();
+        // read client requests
+        while (!startSecureError && (request = communicator.readLine()) != null && !Objects.equals(request, "quit")) {
+            List<String> responses = dmapRequestHandler.handle(request);
+            for (String response : responses) {
+                if (response.equals("error during startsecure")) {
+                    System.err.println("Error during startSecure, terminating connection");
+                    startSecureError = true;
+                    continue;
+                }
+                if (!response.equals("startsecure finished")) {
+                    communicator.println(response);
+                }
+            }
+            communicator.flush();
         }
-        if(!response.equals("startsecure finished")) {
-          communicator.println(response);
-        }else{
-          System.out.println("STARTSECURE FINISHED");
+        if (!startSecureError) {
+            communicator.println("ok bye");
+            communicator.flush();
         }
-      }
-      communicator.flush();
+        communicator.close();
     }
-    if(!startSecureError) {
-      communicator.println("ok bye");
-      communicator.flush();
-    }
-    communicator.close();
-  }
 }

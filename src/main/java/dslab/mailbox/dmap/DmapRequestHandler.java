@@ -54,7 +54,6 @@ public class DmapRequestHandler {
         fillResponseMap();
         if (startSecureStep > 1) {
             request = decrypt(request);
-            System.out.println("handle " + request);
         }
         if (responseMap.containsKey(request)) {
             var answer = responseMap.get(request);
@@ -84,6 +83,12 @@ public class DmapRequestHandler {
         return invalidRequest;
     }
 
+    /**
+     * encrypts given list of messages with AES cipher and encodes them to base64
+     *
+     * @param answer to be encrypted
+     * @return the encrypted and encoded message
+     */
     private List<String> encrypt(List<String> answer) {
         List<String> response = new ArrayList<>();
         for (String s0 : answer) {
@@ -96,6 +101,12 @@ public class DmapRequestHandler {
         return response;
     }
 
+    /**
+     * decodes and decryptes a given message
+     *
+     * @param encryptedMessage to be decrypted
+     * @return decoded and decrypted message
+     */
     public String decrypt(String encryptedMessage) {
         byte[] encryptedBytes = decode(encryptedMessage);
         byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
@@ -106,10 +117,22 @@ public class DmapRequestHandler {
         return response;
     }
 
+    /**
+     * encodes given data to base64
+     *
+     * @param data to be encoded
+     * @return encoded data as a string
+     */
     private String encode(byte[] data) {
         return Base64.getEncoder().encodeToString(data);
     }
 
+    /**
+     * decodes given string from base64 to bytes
+     *
+     * @param data to be decoded
+     * @return decoded bytes
+     */
     private byte[] decode(String data) {
         return Base64.getDecoder().decode(data);
     }
@@ -223,6 +246,14 @@ public class DmapRequestHandler {
         fillResponseMap();
     }
 
+    /**
+     * executes the "challenge" step of the startsecure handshake:
+     * decrypts the given message with the private key,
+     * takes the key and iv to init the AES cipher
+     * encrypts the challenge with the cipher
+     * @param request containing "ok", challenge, key and iv
+     * @return "ok" and the challenge encrypted with the AES cipher
+     */
     private List<String> startSecure(String request) {
         Cipher rsaCipher;
         try {

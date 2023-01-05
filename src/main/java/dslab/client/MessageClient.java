@@ -32,7 +32,6 @@ public class MessageClient implements IMessageClient, Runnable {
     private BufferedWriter mailboxServerBufferedWriter;
     private Cipher aesEncCipher;
     private Cipher aesDecCipher;
-    private boolean startSecureError = false;
 
     /**
      * Creates a new client instance.
@@ -56,7 +55,6 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("000");
             Socket clientSocket = new Socket(config.getString("mailbox.host"), config.getInt("mailbox.port"));
             mailboxBufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             mailboxServerBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
@@ -64,8 +62,9 @@ public class MessageClient implements IMessageClient, Runnable {
             String line = mailboxBufferedReader.readLine(); // just to read the ok DMAP2.0
             System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
-            startSecure();
-            if (startSecureError) {
+            try {
+                startSecure();
+            } catch (IOException e) {
                 clientSocket.close();
                 return;
             }
@@ -82,131 +81,6 @@ public class MessageClient implements IMessageClient, Runnable {
         } catch (IOException e) {
             System.out.println("ERROR client socket");
         }
-    }
-
-    private void writeToServer(String message) throws IOException {
-        mailboxServerBufferedWriter.write(encrypt(message) + "\n");
-        mailboxServerBufferedWriter.flush();
-    }
-
-    private String readLineFromServer() throws IOException {
-        String message = mailboxBufferedReader.readLine();
-        if (message == null){
-            throw new IOException("error server terminated connection");
-        }
-        if (message.startsWith("error")) {
-            return message;
-        }
-        return decrypt(message);
-    }
-
-    private void startSecure() throws IOException {
-        mailboxServerBufferedWriter.write("startsecure\n");
-        mailboxServerBufferedWriter.flush();
-
-        String response = mailboxBufferedReader.readLine();
-        if (!response.startsWith("ok ") || response.length() < 4) {
-            System.out.println(response);
-            System.out.println("wrong format");
-        }
-        String componentId = response.substring(3);
-        Cipher rsaCipher = null;
-        try {
-            rsaCipher = getPublicKey(componentId);
-        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
-            startSecureShutdown();
-        }
-
-        SecureRandom random = null;
-        try {
-            random = SecureRandom.getInstanceStrong();
-        } catch (NoSuchAlgorithmException e) {
-            startSecureShutdown();
-        }
-        byte[] challenge = new byte[32];
-        random.nextBytes(challenge);
-
-        String challengeString = encode(challenge);
-
-        KeyGenerator keyGenerator = null;
-        try {
-            keyGenerator = KeyGenerator.getInstance("AES");
-        } catch (NoSuchAlgorithmException e) {
-            startSecureShutdown();
-        }
-        keyGenerator.init(256);
-        Key key = keyGenerator.generateKey();
-        String aesCipher = encode(key.getEncoded());
-
-
-        byte[] iv = new byte[16];
-        random.nextBytes(iv);
-        String ivString = encode(iv);
-
-        try {
-            this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
-
-            this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
-            aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
-            aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
-        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
-                 InvalidKeyException e) {
-            startSecureShutdown();
-        }
-        String message = "ok " + challengeString + " " + aesCipher + " " + ivString;
-        String encryptedMessage = "";
-        try {
-            encryptedMessage = encryptRsa(message, rsaCipher);
-        } catch (IllegalBlockSizeException | BadPaddingException e) {
-            startSecureShutdown();
-        }
-        mailboxServerBufferedWriter.write(encryptedMessage + "\n");
-        mailboxServerBufferedWriter.flush();
-
-        response = readLineFromServer();
-
-        if (!response.equals("ok " + challengeString)) {
-            startSecureShutdown();
-        } else {
-            mailboxServerBufferedWriter.write(encrypt("ok") + "\n");
-            mailboxServerBufferedWriter.flush();
-        }
-    }
-
-    private String encryptRsa(String message, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException {
-        byte[] messageToBytes = message.getBytes();
-        byte[] encryptedBytes = cipher.doFinal(messageToBytes);
-        return encode(encryptedBytes);
-    }
-
-    private String encrypt(String s) {
-        byte[] messageToBytes = s.getBytes();
-        byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
-        return encode(encryptedBytes);
-    }
-
-    public String decrypt(String encryptedMessage) {
-        byte[] encryptedBytes = decode(encryptedMessage);
-        byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
-        return new String(decryptedMessage);
-    }
-
-    private String encode(byte[] data) {
-        return Base64.getEncoder().encodeToString(data);
-    }
-
-    private byte[] decode(String data) {
-        return Base64.getDecoder().decode(data);
-    }
-
-    private Cipher getPublicKey(String componentId) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidKeyException {
-        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
-        String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
-
-        PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
-
-        rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
-        return rsaCipher;
     }
 
     /**
@@ -227,19 +101,12 @@ public class MessageClient implements IMessageClient, Runnable {
             while (!readString.equals("ok\n")) {
                 totalString += readString;
                 readString = readLineFromServer() + "\n";
-                System.out.printf("totalString:%n%s%n", totalString);
             }
 
             if (emptyInbox) {
                 shell.out().println("Your inbox is empty.");
             } else {
-                System.out.println("AAA");
-
-                System.out.println("totalstring: " + totalString);
                 List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
-
-                System.out.println("BBB");
-
                 for (String message : allMessagesInDetailFormat) {
                     shell.out().println(message);
                 }
@@ -525,9 +392,187 @@ public class MessageClient implements IMessageClient, Runnable {
         }
     }
 
-    private void startSecureShutdown() {
+    /**
+     * executes the startsecure handshake with the server
+     * terminates the connection in case of an error
+     */
+    private void startSecure() throws IOException {
+        mailboxServerBufferedWriter.write("startsecure\n");
+        mailboxServerBufferedWriter.flush();
+
+        String response = mailboxBufferedReader.readLine();
+        if (!response.startsWith("ok ") || response.length() < 4) {
+            startSecureShutdown();
+        }
+        String componentId = response.substring(3);
+        Cipher rsaCipher = null;
+        try {
+            rsaCipher = getPublicKey(componentId);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+            startSecureShutdown();
+        }
+
+        SecureRandom random = null;
+        try {
+            random = SecureRandom.getInstanceStrong();
+        } catch (NoSuchAlgorithmException e) {
+            startSecureShutdown();
+        }
+        byte[] challenge = new byte[32];
+        random.nextBytes(challenge);
+
+        String challengeString = encode(challenge);
+
+        KeyGenerator keyGenerator = null;
+        try {
+            keyGenerator = KeyGenerator.getInstance("AES");
+        } catch (NoSuchAlgorithmException e) {
+            startSecureShutdown();
+        }
+        keyGenerator.init(256);
+        Key key = keyGenerator.generateKey();
+        String aesCipher = encode(key.getEncoded());
+
+
+        byte[] iv = new byte[16];
+        random.nextBytes(iv);
+        String ivString = encode(iv);
+
+        try {
+            this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
+
+            this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
+            aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            startSecureShutdown();
+        }
+        String message = "ok " + challengeString + " " + aesCipher + " " + ivString;
+        String encryptedMessage = "";
+        try {
+            encryptedMessage = encryptRsa(message, rsaCipher);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            startSecureShutdown();
+        }
+        mailboxServerBufferedWriter.write(encryptedMessage + "\n");
+        mailboxServerBufferedWriter.flush();
+
+        response = readLineFromServer();
+
+        if (!response.equals("ok " + challengeString)) {
+            startSecureShutdown();
+        } else {
+            mailboxServerBufferedWriter.write(encrypt("ok") + "\n");
+            mailboxServerBufferedWriter.flush();
+        }
+    }
+
+    /**
+     * encrypts the given message with the given RSA cipher
+     *
+     * @param message to be encrypted
+     * @param cipher  to encrypt with
+     * @return the encrypted message
+     */
+    private String encryptRsa(String message, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException {
+        byte[] messageToBytes = message.getBytes();
+        byte[] encryptedBytes = cipher.doFinal(messageToBytes);
+        return encode(encryptedBytes);
+    }
+
+    /**
+     * encrypts given message with AES cipher and encodes it to base64
+     *
+     * @param message to be encrypted
+     * @return the encrypted and encoded message
+     */
+    private String encrypt(String message) {
+        byte[] messageToBytes = message.getBytes();
+        byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
+        return encode(encryptedBytes);
+    }
+
+    /**
+     * decodes and decryptes a given message
+     *
+     * @param encryptedMessage to be decrypted
+     * @return decoded and decrypted message
+     */
+    public String decrypt(String encryptedMessage) {
+        byte[] encryptedBytes = decode(encryptedMessage);
+        byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
+        return new String(decryptedMessage);
+    }
+
+    /**
+     * encodes given data to base64
+     *
+     * @param data to be encoded
+     * @return encoded data as a string
+     */
+    private String encode(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
+    }
+
+    /**
+     * decodes given string from base64 to bytes
+     *
+     * @param data to be decoded
+     * @return decoded bytes
+     */
+    private byte[] decode(String data) {
+        return Base64.getDecoder().decode(data);
+    }
+
+    /**
+     * reads public key of server with given component id and inits RSA cipher
+     *
+     * @param componentId of server whose key to read
+     * @return initialized RSA cipher
+     */
+    private Cipher getPublicKey(String componentId) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidKeyException {
+        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
+
+        PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
+
+        rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
+        return rsaCipher;
+    }
+
+    /**
+     * encrypts given message and sends it to the server
+     *
+     * @param message message to be sent
+     */
+    private void writeToServer(String message) throws IOException {
+        mailboxServerBufferedWriter.write(encrypt(message) + "\n");
+        mailboxServerBufferedWriter.flush();
+    }
+
+    /**
+     * reads line from server and decrypts it
+     *
+     * @return the decrypted message
+     */
+    private String readLineFromServer() throws IOException {
+        String message = mailboxBufferedReader.readLine();
+        if (message == null) {
+            throw new IOException("error server terminated connection");
+        }
+        if (message.startsWith("error")) {
+            return message;
+        }
+        return decrypt(message);
+    }
+
+    /**
+     * when an error during startsecure occured client disconnects from the server and shuts down
+     */
+    private void startSecureShutdown() throws IOException {
         System.err.println("Error during startSecure, terminating connection");
-        startSecureError = true;
+        throw new IOException("error during startsecure");
     }
 
     @Override
