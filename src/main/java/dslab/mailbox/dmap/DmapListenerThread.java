@@ -23,10 +23,12 @@ public class DmapListenerThread extends Thread {
   private final ExecutorService executor = Executors.newCachedThreadPool();
   private final Log LOG = LogFactory.getLog(DmapListenerThread.class);
   private boolean stopped = false;
+  private final String componentId;
 
-  public DmapListenerThread(ServerSocket serverSocket, String userConfig) {
+  public DmapListenerThread(ServerSocket serverSocket, String userConfig, String componentId) {
     this.serverSocket = serverSocket;
     this.users = userConfig;
+    this.componentId = componentId;
   }
 
   public void run() {
@@ -35,7 +37,7 @@ public class DmapListenerThread extends Thread {
       if (!communicator.establishConnection()) {
         break;
       }
-      executor.execute(new DmapCommunicationThread(communicator, users));
+      executor.execute(new DmapCommunicationThread(communicator, users, componentId));
     }
     executor.shutdown();
   }
