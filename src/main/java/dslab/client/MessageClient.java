@@ -1,32 +1,21 @@
 package dslab.client;
 
-import java.io.BufferedReader;
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.InputStreamReader;
-import java.io.OutputStreamWriter;
-import java.io.PrintStream;
-import java.net.Socket;
-import java.net.SocketException;
-import java.nio.charset.StandardCharsets;
-import java.security.InvalidKeyException;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
-import java.util.ArrayList;
-import java.util.Base64;
-import java.util.List;
-import java.util.MissingResourceException;
-
 import at.ac.tuwien.dsg.orvell.Shell;
+import at.ac.tuwien.dsg.orvell.StopShellException;
 import at.ac.tuwien.dsg.orvell.annotation.Command;
 import dslab.ComponentFactory;
 import dslab.util.Config;
 import dslab.util.Keys;
 
-import javax.crypto.SecretKey;
-import javax.crypto.Mac;
+import javax.crypto.*;
+import javax.crypto.spec.IvParameterSpec;
+import java.io.*;
+import java.net.Socket;
+import java.security.*;
+import java.util.ArrayList;
+import java.util.Base64;
+import java.util.List;
+import java.util.MissingResourceException;
 
 import static dslab.util.Util.getDomainName;
 import static dslab.util.Util.getWholeSocketAddress;
@@ -41,14 +30,16 @@ public class MessageClient implements IMessageClient, Runnable {
     private final Shell shell;
     private BufferedReader mailboxBufferedReader;
     private BufferedWriter mailboxServerBufferedWriter;
+    private Cipher aesEncCipher;
+    private Cipher aesDecCipher;
 
     /**
      * Creates a new client instance.
      *
      * @param componentId the id of the component that corresponds to the Config resource
-     * @param config the component config
-     * @param in the input stream to read console input from
-     * @param out the output stream to write console output to
+     * @param config      the component config
+     * @param in          the input stream to read console input from
+     * @param out         the output stream to write console output to
      */
     public MessageClient(String componentId, Config config, InputStream in, PrintStream out) {
         this.componentId = componentId;
@@ -64,7 +55,6 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void run() {
         try {
-            System.out.println("000");
             Socket clientSocket = new Socket(config.getString("mailbox.host"), config.getInt("mailbox.port"));
             mailboxBufferedReader = new BufferedReader(new InputStreamReader(clientSocket.getInputStream()));
             mailboxServerBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
@@ -72,17 +62,19 @@ public class MessageClient implements IMessageClient, Runnable {
             String line = mailboxBufferedReader.readLine(); // just to read the ok DMAP2.0
             System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
-            // todo: here the code for "startsecure" will be inserted
-            mailboxServerBufferedWriter.write(
-                    "login "
+            try {
+                startSecure();
+            } catch (IOException e) {
+                clientSocket.close();
+                return;
+            }
+
+            writeToServer("login "
                     + config.getString("mailbox.user")
                     + " "
-                    + config.getString("mailbox.password")
-                    + "\n"
-            );
-            mailboxServerBufferedWriter.flush();
+                    + config.getString("mailbox.password"));
 
-            line =  mailboxBufferedReader.readLine();
+            line = readLineFromServer();//mailboxBufferedReader.readLine();
             System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + line);
 
             shell.run();
@@ -98,29 +90,23 @@ public class MessageClient implements IMessageClient, Runnable {
     @Override
     public void inbox() {
         try {
-            mailboxServerBufferedWriter.write("list\n");
-            mailboxServerBufferedWriter.flush();
+            writeToServer("list\n");
             System.out.println("Waiting on response after list command...");
 
             String totalString = "";
-            String readString = mailboxBufferedReader.readLine() + "\n";
+
+            String readString = readLineFromServer() + "\n";
             boolean emptyInbox = readString.equals("ok\n");
 
-            while ( ! readString.equals("ok\n")) {
+            while (!readString.equals("ok\n")) {
                 totalString += readString;
-                readString = mailboxBufferedReader.readLine() + "\n";
-                System.out.printf("totalString:%n%s%n", totalString);
+                readString = readLineFromServer() + "\n";
             }
 
             if (emptyInbox) {
                 shell.out().println("Your inbox is empty.");
             } else {
-                System.out.println("AAA");
-
                 List<String> allMessagesInDetailFormat = getAllMessagesInDetailFormat(totalString);
-
-                System.out.println("BBB");
-
                 for (String message : allMessagesInDetailFormat) {
                     shell.out().println(message);
                 }
@@ -141,25 +127,23 @@ public class MessageClient implements IMessageClient, Runnable {
             String id = message.split(" ")[0];
 
             try {
-                mailboxServerBufferedWriter.write("show " + id + "\n");
-                mailboxServerBufferedWriter.flush();
+                writeToServer("show " + id + "\n");
 
                 String totalString = "\nMESSAGE WITH ID " + id + ": \n";
 
-                String from = mailboxBufferedReader.readLine();
+                String from = readLineFromServer();
                 totalString += from + '\n';
-                String to = mailboxBufferedReader.readLine();
+                String to = readLineFromServer();
                 totalString += to + '\n';
-                String subject = mailboxBufferedReader.readLine();
+                String subject = readLineFromServer();
                 totalString += subject + '\n';
-                String data = mailboxBufferedReader.readLine();
+                String data = readLineFromServer();
                 totalString += data + '\n';
-
-                String hash = mailboxBufferedReader.readLine();
+                String hash = readLineFromServer();
                 System.out.println("THE FOLLOWING SHOULD BE \"a hash\": " + hash);
 
                 // just read the "ok" at the end of show, but don't treat it
-                String ok = mailboxBufferedReader.readLine();
+                String ok = readLineFromServer();
                 System.out.println("THE FOLLOWING SHOULD BE \"ok\": " + ok);
 
                 allMessagesInDetailFormat.add(totalString);
@@ -182,9 +166,8 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void delete(String id) {
         try {
-            mailboxServerBufferedWriter.write("delete " + id + "\n");
-            mailboxServerBufferedWriter.flush();
-            String serverResponse = mailboxBufferedReader.readLine();
+            writeToServer("delete " + id + "\n");
+            String serverResponse = readLineFromServer();
 
             if (serverResponse.startsWith("error")) {
                 shell.out().println(serverResponse);
@@ -208,19 +191,17 @@ public class MessageClient implements IMessageClient, Runnable {
     @Command
     public void verify(String id) {
         try {
-            mailboxServerBufferedWriter.write("show " + id + "\n");
-            mailboxServerBufferedWriter.flush();
-
+            writeToServer("show " + id + "\n");
 
             String totalString = "";
-            String readString = mailboxBufferedReader.readLine() + "\n";
-            while ( ! readString.equals("ok\n")) {
+            String readString = readLineFromServer() + "\n";
+            while (!readString.equals("ok\n")) {
                 if (readString.startsWith("error")) {
                     shell.out().println("error - message integrity could not be verified because the message could not be found");
                     return;
                 }
                 totalString += readString;
-                readString = mailboxBufferedReader.readLine() + "\n";
+                readString = readLineFromServer() + "\n";
                 System.out.printf("totalString:%n%s%n", totalString);
             }
 
@@ -294,7 +275,7 @@ public class MessageClient implements IMessageClient, Runnable {
                     .append("\n");
         }
         // NOTE: substring to exclude the last '\n'
-        return finalString.toString().substring(0,finalString.length()-1);
+        return finalString.toString().substring(0, finalString.length() - 1);
     }
 
     private byte[] computeHash(String messageText) throws IOException, NoSuchAlgorithmException, InvalidKeyException {
@@ -310,9 +291,9 @@ public class MessageClient implements IMessageClient, Runnable {
     /**
      * Sends a message from the mail client's user to the given recipient(s)
      *
-     * @param to comma separated list of recipients
+     * @param to      comma separated list of recipients
      * @param subject the message subject
-     * @param data the message data
+     * @param data    the message data
      */
     @Override
     @Command
@@ -349,7 +330,7 @@ public class MessageClient implements IMessageClient, Runnable {
                 }
 
                 String[] portDomain = targetAddress.split(":");
-                assert(portDomain.length == 2);
+                assert (portDomain.length == 2);
 
                 String response = "no response received yet";
                 try {
@@ -411,14 +392,201 @@ public class MessageClient implements IMessageClient, Runnable {
         }
     }
 
+    /**
+     * executes the startsecure handshake with the server
+     * terminates the connection in case of an error
+     */
+    private void startSecure() throws IOException {
+        mailboxServerBufferedWriter.write("startsecure\n");
+        mailboxServerBufferedWriter.flush();
+
+        String response = mailboxBufferedReader.readLine();
+        if (!response.startsWith("ok ") || response.length() < 4) {
+            startSecureShutdown();
+        }
+        String componentId = response.substring(3);
+        Cipher rsaCipher = null;
+        try {
+            rsaCipher = getPublicKey(componentId);
+        } catch (NoSuchPaddingException | NoSuchAlgorithmException | InvalidKeyException e) {
+            startSecureShutdown();
+        }
+
+        SecureRandom random = null;
+        try {
+            random = SecureRandom.getInstanceStrong();
+        } catch (NoSuchAlgorithmException e) {
+            startSecureShutdown();
+        }
+        byte[] challenge = new byte[32];
+        random.nextBytes(challenge);
+
+        String challengeString = encode(challenge);
+
+        KeyGenerator keyGenerator = null;
+        try {
+            keyGenerator = KeyGenerator.getInstance("AES");
+        } catch (NoSuchAlgorithmException e) {
+            startSecureShutdown();
+        }
+        keyGenerator.init(256);
+        Key key = keyGenerator.generateKey();
+        String aesCipher = encode(key.getEncoded());
+
+
+        byte[] iv = new byte[16];
+        random.nextBytes(iv);
+        String ivString = encode(iv);
+
+        try {
+            this.aesEncCipher = Cipher.getInstance("AES/CTR/NoPadding");
+
+            this.aesDecCipher = Cipher.getInstance("AES/CTR/NoPadding");
+            aesEncCipher.init(Cipher.ENCRYPT_MODE, key, new IvParameterSpec(iv));
+            aesDecCipher.init(Cipher.DECRYPT_MODE, key, new IvParameterSpec(iv));
+        } catch (NoSuchAlgorithmException | NoSuchPaddingException | InvalidAlgorithmParameterException |
+                 InvalidKeyException e) {
+            startSecureShutdown();
+        }
+        String message = "ok " + challengeString + " " + aesCipher + " " + ivString;
+        String encryptedMessage = "";
+        try {
+            encryptedMessage = encryptRsa(message, rsaCipher);
+        } catch (IllegalBlockSizeException | BadPaddingException e) {
+            startSecureShutdown();
+        }
+        mailboxServerBufferedWriter.write(encryptedMessage + "\n");
+        mailboxServerBufferedWriter.flush();
+
+        response = readLineFromServer();
+
+        if (!response.equals("ok " + challengeString)) {
+            startSecureShutdown();
+        } else {
+            mailboxServerBufferedWriter.write(encrypt("ok") + "\n");
+            mailboxServerBufferedWriter.flush();
+        }
+    }
+
+    /**
+     * encrypts the given message with the given RSA cipher
+     *
+     * @param message to be encrypted
+     * @param cipher  to encrypt with
+     * @return the encrypted message
+     */
+    private String encryptRsa(String message, Cipher cipher) throws IllegalBlockSizeException, BadPaddingException {
+        byte[] messageToBytes = message.getBytes();
+        byte[] encryptedBytes = cipher.doFinal(messageToBytes);
+        return encode(encryptedBytes);
+    }
+
+    /**
+     * encrypts given message with AES cipher and encodes it to base64
+     *
+     * @param message to be encrypted
+     * @return the encrypted and encoded message
+     */
+    private String encrypt(String message) {
+        byte[] messageToBytes = message.getBytes();
+        byte[] encryptedBytes = aesEncCipher.update(messageToBytes);
+        return encode(encryptedBytes);
+    }
+
+    /**
+     * decodes and decryptes a given message
+     *
+     * @param encryptedMessage to be decrypted
+     * @return decoded and decrypted message
+     */
+    public String decrypt(String encryptedMessage) {
+        byte[] encryptedBytes = decode(encryptedMessage);
+        byte[] decryptedMessage = aesDecCipher.update(encryptedBytes);
+        return new String(decryptedMessage);
+    }
+
+    /**
+     * encodes given data to base64
+     *
+     * @param data to be encoded
+     * @return encoded data as a string
+     */
+    private String encode(byte[] data) {
+        return Base64.getEncoder().encodeToString(data);
+    }
+
+    /**
+     * decodes given string from base64 to bytes
+     *
+     * @param data to be decoded
+     * @return decoded bytes
+     */
+    private byte[] decode(String data) {
+        return Base64.getDecoder().decode(data);
+    }
+
+    /**
+     * reads public key of server with given component id and inits RSA cipher
+     *
+     * @param componentId of server whose key to read
+     * @return initialized RSA cipher
+     */
+    private Cipher getPublicKey(String componentId) throws NoSuchPaddingException, NoSuchAlgorithmException, IOException, InvalidKeyException {
+        Cipher rsaCipher = Cipher.getInstance("RSA/ECB/PKCS1Padding");
+        String publicKeyFileName = "keys/client/" + componentId + "_pub.der";
+
+        PublicKey publicKey = Keys.readPublicKey(new File(publicKeyFileName));
+
+        rsaCipher.init(Cipher.PUBLIC_KEY, publicKey);
+        return rsaCipher;
+    }
+
+    /**
+     * encrypts given message and sends it to the server
+     *
+     * @param message message to be sent
+     */
+    private void writeToServer(String message) throws IOException {
+        mailboxServerBufferedWriter.write(encrypt(message) + "\n");
+        mailboxServerBufferedWriter.flush();
+    }
+
+    /**
+     * reads line from server and decrypts it
+     *
+     * @return the decrypted message
+     */
+    private String readLineFromServer() throws IOException {
+        String message = mailboxBufferedReader.readLine();
+        if (message == null) {
+            throw new IOException("error server terminated connection");
+        }
+        if (message.startsWith("error")) {
+            return message;
+        }
+        return decrypt(message);
+    }
+
+    /**
+     * when an error during startsecure occured client disconnects from the server and shuts down
+     */
+    private void startSecureShutdown() throws IOException {
+        System.err.println("Error during startSecure, terminating connection");
+        throw new IOException("error during startsecure");
+    }
+
     @Override
     @Command
     public void shutdown() {
-//                    bufferedWriter.write("quit\n");
-//                    bufferedWriter.flush();
-//                    line = bufferedReader.readLine();
-//                    System.out.println("CLIENT READS LINE: " + line);
-
+        try {
+            mailboxServerBufferedWriter.write("quit\n");
+            mailboxServerBufferedWriter.flush();
+            String line = mailboxBufferedReader.readLine();
+            System.out.println("CLIENT READS LINE: " + line);
+        } catch (IOException e) {
+            System.err.println("error during shutdown");
+        }
+        throw new StopShellException();
 
     }
 
