@@ -19,9 +19,7 @@ import java.rmi.NotBoundException;
 import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
-import java.util.Arrays;
-import java.util.List;
-import java.util.MissingResourceException;
+import java.util.*;
 
 /**
  * This Class implements the Producer-Consumer Class receiving Messages from the {@link dslab.transfer.dmtp.DmtpRequestHandler}
@@ -141,11 +139,16 @@ public class MessageDistributer {
     try {
       Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
       INameserverRemote remote = (INameserverRemote) registry.lookup(rootId);
+      List<INameserverRemote> remoteQueue = new ArrayList<>();
+      remoteQueue.add(remote);
       for(int i = zones.size()-1; i >= 0; i--) {
         if(remote == null) return null;
-        remote = remote.getNameserver(zones.get(i));
+        var ns = remote.getNameserver(zones.get(i));
+        if(ns != null) {
+          remoteQueue.add(ns);
+        }
       }
-      return remote.lookup(zones.get(0));
+      return remoteQueue.get(remoteQueue.size()-1).lookup(zones.get(0));
     } catch (RemoteException | NotBoundException e) {
       e.printStackTrace();
       return null;
