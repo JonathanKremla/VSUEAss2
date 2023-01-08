@@ -14,6 +14,7 @@ import dslab.nameserver.Nameserver;
 import dslab.shell.BasicShell;
 import dslab.shell.IShell;
 import dslab.shell.MonitoringShell;
+import dslab.shell.NameserverShell;
 import dslab.transfer.ITransferServer;
 import dslab.transfer.TransferServer;
 import dslab.util.Config;
@@ -97,6 +98,11 @@ public final class ComponentFactory {
         // Instantiate a new ShellExample with the given credentials and return
         // it
         return new BasicShell(componentName, in, out);
+    }
+
+    public static NameserverShell createNameserverShell(Nameserver server, String componentName, InputStream in, PrintStream out)
+        throws Exception {
+        return new NameserverShell(server, componentName, in, out);
     }
 
     /**

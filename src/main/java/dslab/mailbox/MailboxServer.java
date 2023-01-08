@@ -3,6 +3,9 @@ package dslab.mailbox;
 import dslab.ComponentFactory;
 import dslab.mailbox.dmap.DmapListenerThread;
 import dslab.mailbox.dmtp.DmtpListenerThread;
+import dslab.nameserver.AlreadyRegisteredException;
+import dslab.nameserver.INameserverRemote;
+import dslab.nameserver.InvalidDomainException;
 import dslab.shell.IShell;
 import dslab.util.Config;
 import org.apache.commons.logging.Log;
@@ -12,6 +15,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.PrintStream;
 import java.net.ServerSocket;
+import java.rmi.NotBoundException;
+import java.rmi.RemoteException;
+import java.rmi.registry.LocateRegistry;
+import java.rmi.registry.Registry;
 
 public class MailboxServer implements IMailboxServer, Runnable {
 
@@ -22,6 +29,9 @@ public class MailboxServer implements IMailboxServer, Runnable {
   private final int tcpDmapPort;
   private final int tcpDmtpPort;
   private final String users;
+  private final String registryHost;
+  private final String registryPort;
+  private final String rootId;
   private DmapListenerThread dmapListenerThread;
   private DmtpListenerThread dmtpListenerThread;
   private final String componentId;
@@ -42,6 +52,9 @@ public class MailboxServer implements IMailboxServer, Runnable {
     tcpDmapPort = config.getInt("dmap.tcp.port");
     tcpDmtpPort = config.getInt("dmtp.tcp.port");
     this.componentId = componentId;
+    registryHost = config.getString("registry.host");
+    registryPort = config.getString("registry.port");
+    rootId = config.getString("root_id");
   }
 
   public static void main(String[] args) throws Exception {
@@ -66,6 +79,17 @@ public class MailboxServer implements IMailboxServer, Runnable {
     shutdown();
   }
 
+  private void register() {
+    try {
+      Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
+      INameserverRemote remote = (INameserverRemote) registry.lookup(rootId);
+      remote.registerMailboxServer(domain, "localhost:" + tcpDmtpPort);
+    } catch (RemoteException | NotBoundException | AlreadyRegisteredException | InvalidDomainException e) {
+      e.printStackTrace();
+    }
+
+  }
+
   @Override
   public void shutdown() {
     dmapListenerThread.stopThread();
@@ -86,6 +110,8 @@ public class MailboxServer implements IMailboxServer, Runnable {
   private void createDmtpListenerThread() {
     try {
       ServerSocket dmtpSocket = new ServerSocket(tcpDmtpPort);
+      LOG.info(dmtpSocket.getLocalSocketAddress());
+      register();
       dmtpListenerThread = new DmtpListenerThread(dmtpSocket, domain, users);
       dmtpListenerThread.start();
     } catch (IOException e) {

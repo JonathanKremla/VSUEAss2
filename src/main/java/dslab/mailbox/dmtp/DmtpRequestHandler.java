@@ -1,8 +1,11 @@
 package dslab.mailbox.dmtp;
 
+import dslab.mailbox.MailboxServer;
 import dslab.mailbox.MessageStorage;
 import dslab.util.Config;
 import dslab.util.datastructures.Email;
+import org.apache.commons.logging.Log;
+import org.apache.commons.logging.LogFactory;
 
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -22,6 +25,7 @@ public class DmtpRequestHandler {
   private Email receivedEmail = new Email();
   private boolean transferBegan = false;
   private List<String> recipients = new ArrayList<>();
+  private static final Log LOG = LogFactory.getLog(DmtpRequestHandler.class);
 
   public DmtpRequestHandler(String domain, String userConfig) {
     this.domain = domain;
@@ -36,6 +40,7 @@ public class DmtpRequestHandler {
    * @return the appropriate answer to the request
    */
   public String handleRequest(String request) {
+    LOG.info("handling request: " + request);
     switch (request.split(" ")[0]) {
       case "begin":
         return parseBegin(request);
