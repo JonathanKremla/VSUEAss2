@@ -161,6 +161,7 @@ public class MessageDistributer {
     mailboxOut.println("from " + email.getFrom());
     mailboxOut.println("subject " + email.getSubject());
     mailboxOut.println("data " + email.getData());
+    mailboxOut.println("hash " + email.getHash());
     mailboxOut.println("send");
     mailboxOut.flush();
     LOG.info("Finished sending email");

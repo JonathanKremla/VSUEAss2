@@ -60,7 +60,6 @@ public class MessageClient implements IMessageClient, Runnable {
             mailboxServerBufferedWriter = new BufferedWriter(new OutputStreamWriter(clientSocket.getOutputStream()));
 
             String line = mailboxBufferedReader.readLine(); // just to read the ok DMAP2.0
-            System.out.println("MAILBOX RESPONSE AFTER CONNECTION: " + line);
 
             try {
                 startSecure();
@@ -75,11 +74,10 @@ public class MessageClient implements IMessageClient, Runnable {
                     + config.getString("mailbox.password"));
 
             line = readLineFromServer();//mailboxBufferedReader.readLine();
-            System.out.println("MAILBOX RESPONSE AFTER LOGIN: " + line);
 
             shell.run();
         } catch (IOException e) {
-            System.out.println("ERROR client socket");
+            System.err.println("ERROR client socket");
         }
     }
 
@@ -91,7 +89,6 @@ public class MessageClient implements IMessageClient, Runnable {
     public void inbox() {
         try {
             writeToServer("list\n");
-            System.out.println("Waiting on response after list command...");
 
             String totalString = "";
 
@@ -140,11 +137,9 @@ public class MessageClient implements IMessageClient, Runnable {
                 String data = readLineFromServer();
                 totalString += data + '\n';
                 String hash = readLineFromServer();
-                System.out.println("THE FOLLOWING SHOULD BE \"a hash\": " + hash);
 
                 // just read the "ok" at the end of show, but don't treat it
                 String ok = readLineFromServer();
-                System.out.println("THE FOLLOWING SHOULD BE \"ok\": " + ok);
 
                 allMessagesInDetailFormat.add(totalString);
 
@@ -202,7 +197,6 @@ public class MessageClient implements IMessageClient, Runnable {
                 }
                 totalString += readString;
                 readString = readLineFromServer() + "\n";
-                System.out.printf("totalString:%n%s%n", totalString);
             }
 
             String messageText = parseIntoFormat(totalString);
@@ -319,22 +313,22 @@ public class MessageClient implements IMessageClient, Runnable {
             String[] recipientEmails = to.split(",");
             if (recipientEmails.length == 0) throw new RuntimeException("Fatal Error 1");
 
+
+            String targetHost;
+            String targetPort;
+            try {
+                targetHost = config.getString("transfer.host"); // format: ip-address:port
+                targetPort = config.getString("transfer.port"); // format: ip-address:port
+            } catch (MissingResourceException mre) {
+                shell.out().println("error could not find transfer server properties");
+                return;
+            }
+
             for (String recipientEmail : recipientEmails) {
-
-                String targetAddress;
-                try {
-                    targetAddress = getWholeSocketAddress(getDomainName(recipientEmail)); // format: ip-address:port
-                } catch (MissingResourceException mre) {
-                    shell.out().println("error could not find recipient: " + recipientEmail);
-                    return;
-                }
-
-                String[] portDomain = targetAddress.split(":");
-                assert (portDomain.length == 2);
 
                 String response = "no response received yet";
                 try {
-                    Socket socket = new Socket(portDomain[0], parseInt(portDomain[1]));
+                    Socket socket = new Socket(targetHost, parseInt(targetPort));
 
                     BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
                     BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
@@ -342,43 +336,36 @@ public class MessageClient implements IMessageClient, Runnable {
                     bufferedWriter.write("begin\n");
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("to " + to + '\n');
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("from " + from + '\n');
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("subject " + subject + '\n');
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("data " + data + '\n');
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("hash " + hash + '\n');
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     bufferedWriter.write("send\n");
                     bufferedWriter.flush();
                     response = bufferedReader.readLine();
-                    System.out.println("CLIENT READS LINE: " + response);
                     if (response.startsWith("error")) throw new IOException("custom");
 
                     shell.out().println("ok");
@@ -582,7 +569,6 @@ public class MessageClient implements IMessageClient, Runnable {
             mailboxServerBufferedWriter.write("quit\n");
             mailboxServerBufferedWriter.flush();
             String line = mailboxBufferedReader.readLine();
-            System.out.println("CLIENT READS LINE: " + line);
         } catch (IOException e) {
             System.err.println("error during shutdown");
         }

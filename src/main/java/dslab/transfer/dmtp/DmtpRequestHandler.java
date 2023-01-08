@@ -11,6 +11,9 @@ import java.util.List;
 import java.util.Objects;
 import java.util.stream.Collectors;
 
+import static dslab.util.Util.decode;
+import static dslab.util.Util.encode;
+
 /**
  * handles all DMTP requests, a request being one command sent from a Client,
  * for Transfer Server and provides the appropriate response(s)
@@ -60,7 +63,7 @@ public class DmtpRequestHandler extends Thread {
       return "error invalid request (2)";
     }
     String hash = args[1];
-    byte[] bytes = hash.getBytes();
+    byte[] bytes = decode(hash);
 
     // "The generated hash is a 32 byte value"
     if (bytes.length != 32) {
