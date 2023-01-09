@@ -20,6 +20,7 @@ import java.rmi.RemoteException;
 import java.rmi.registry.LocateRegistry;
 import java.rmi.registry.Registry;
 import java.util.*;
+import java.util.stream.Collectors;
 
 /**
  * This Class implements the Producer-Consumer Class receiving Messages from the {@link dslab.transfer.dmtp.DmtpRequestHandler}
@@ -110,7 +111,7 @@ public class MessageDistributer {
     try {
       if (mailboxSocket != null &&
               mailboxSocket.isConnected() &&
-              mailboxSocket.getPort() == Integer.parseInt(domainConfig.getString(domain).split(":")[1])) {
+              mailboxSocket.getPort() == port) {
         return true;
       }
     } catch (MissingResourceException e) {
@@ -135,20 +136,17 @@ public class MessageDistributer {
   }
 
   private String getAddressOfDomain(String domain) {
-    List<String> zones = Arrays.asList(domain.split("\\."));
+    var split = domain.split("\\.");
+    String mailboxDomain = split[0];
+    List<String> zones = Arrays.stream(split).collect(Collectors.toList()).subList(1,split.length);
     try {
       Registry registry = LocateRegistry.getRegistry(registryHost, Integer.parseInt(registryPort));
       INameserverRemote remote = (INameserverRemote) registry.lookup(rootId);
-      List<INameserverRemote> remoteQueue = new ArrayList<>();
-      remoteQueue.add(remote);
       for(int i = zones.size()-1; i >= 0; i--) {
         if(remote == null) return null;
-        var ns = remote.getNameserver(zones.get(i));
-        if(ns != null) {
-          remoteQueue.add(ns);
-        }
+        remote = remote.getNameserver(zones.get(i));
       }
-      return remoteQueue.get(remoteQueue.size()-1).lookup(zones.get(0));
+      return remote == null ? null : remote.lookup(mailboxDomain);
     } catch (RemoteException | NotBoundException e) {
       e.printStackTrace();
       return null;

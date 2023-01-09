@@ -120,7 +120,7 @@ public class Nameserver implements INameserver, INameserverRemote {
         if (zones.length > 1) {
             String nextSubDomain = zones[zones.length - 1];
             String remainingDomain = domain.substring(0, domain.length() - nextSubDomain.length() - 1);
-            children.get(nextSubDomain).registerNameserver(remainingDomain, this);
+            children.get(nextSubDomain).registerNameserver(remainingDomain, nameserver);
         } else {
             if (this.children.get(zones[0]) == null) {
                 this.children.put(zones[0], nameserver);
