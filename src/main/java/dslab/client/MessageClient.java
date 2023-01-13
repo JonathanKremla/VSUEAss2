@@ -17,8 +17,6 @@ import java.util.Base64;
 import java.util.List;
 import java.util.MissingResourceException;
 
-import static dslab.util.Util.getDomainName;
-import static dslab.util.Util.getWholeSocketAddress;
 import static java.lang.Integer.parseInt;
 
 public class MessageClient implements IMessageClient, Runnable {
@@ -324,55 +322,52 @@ public class MessageClient implements IMessageClient, Runnable {
                 return;
             }
 
-            for (String recipientEmail : recipientEmails) {
+            String response = "no response received yet";
+            try {
+                Socket socket = new Socket(targetHost, parseInt(targetPort));
 
-                String response = "no response received yet";
-                try {
-                    Socket socket = new Socket(targetHost, parseInt(targetPort));
+                BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
+                BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
 
-                    BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(socket.getInputStream()));
-                    BufferedWriter bufferedWriter = new BufferedWriter(new OutputStreamWriter(socket.getOutputStream()));
+                bufferedWriter.write("begin\n");
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("begin\n");
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("to " + to + '\n');
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("to " + to + '\n');
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("from " + from + '\n');
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("from " + from + '\n');
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("subject " + subject + '\n');
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("subject " + subject + '\n');
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("data " + data + '\n');
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("data " + data + '\n');
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("hash " + hash + '\n');
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("hash " + hash + '\n');
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
+                bufferedWriter.write("send\n");
+                bufferedWriter.flush();
+                response = bufferedReader.readLine();
+                if (response.startsWith("error")) throw new IOException("custom");
 
-                    bufferedWriter.write("send\n");
-                    bufferedWriter.flush();
-                    response = bufferedReader.readLine();
-                    if (response.startsWith("error")) throw new IOException("custom");
-
-                    shell.out().println("ok");
-                } catch (IOException se) {
-                    shell.out().println("error while sending message to " + recipientEmail + "1: " + response);
-                    return;
-                }
+                shell.out().println("ok");
+            } catch (IOException se) {
+                shell.out().println("error while sending message to " + to + ": " + response);
+                return;
             }
         } catch (IOException | NoSuchAlgorithmException | InvalidKeyException e) {
             e.printStackTrace();

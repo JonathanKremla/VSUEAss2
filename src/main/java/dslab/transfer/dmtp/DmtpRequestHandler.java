@@ -79,15 +79,12 @@ public class DmtpRequestHandler extends Thread {
       return "error invalid request";
     }
     //remove "to"
-    request = request.substring(2);
+    request = request.substring(3);
     var recipients = Arrays.stream(request.split(","))
             .map(String::trim)
             .collect(Collectors.toList());
 
-    receivedEmail.setTo(recipients.stream()
-            .reduce("", (emails, email) -> emails
-                    + (Objects.equals(emails, "") ? "" : " , ")
-                    + email));
+    receivedEmail.setTo(request);
 
     List<String> domainList = new ArrayList<>();
     for (String recipient : recipients) {

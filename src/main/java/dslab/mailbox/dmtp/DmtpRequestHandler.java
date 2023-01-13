@@ -82,7 +82,7 @@ public class DmtpRequestHandler {
     }
 
     //remove "to"
-    request = request.substring(2);
+    request = request.substring(3);
     //filters out all emails with other domain than this Mailbox
     var recipientList = Arrays.stream(request.split(","))
             .map(String::trim)
@@ -96,9 +96,7 @@ public class DmtpRequestHandler {
       return "error unknown";
     }
 
-    receivedEmail.setTo(recipientList.stream().reduce("", (emails, email) -> emails
-            + (Objects.equals(emails, "") ? "" : " , ")
-            + email));
+    receivedEmail.setTo(request);
 
     for (String recipient : recipientList) {
       this.recipients.add(recipient.split("@")[0]);
